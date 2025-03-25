@@ -262,3 +262,53 @@ databaseChangeLog:
               - column:
                   name: owner_id
                   type: BIGINT
+  - changeSet:
+      id: 08
+      author: developer
+      changes:
+        - createTable:
+            tableName: connected_players
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_connected_player_user
+                    references: users(id)
+              - column:
+                  name: game_map_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_connected_player_game_map
+                    references: game_maps(id)
+              - column:
+                  name: team_id
+                  type: bigint
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_connected_player_team
+                    references: teams(id)
+              - column:
+                  name: joined_at
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: connected_players
+            columnNames: user_id, game_map_id
+            constraintName: uk_connected_player_user_map
