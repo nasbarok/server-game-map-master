@@ -1,0 +1,264 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01
+      author: system
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: username
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: password
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: first_name
+                  type: VARCHAR(255)
+              - column:
+                  name: last_name
+                  type: VARCHAR(255)
+              - column:
+                  name: phone_number
+                  type: VARCHAR(255)
+              - column:
+                  name: active
+                  type: BOOLEAN
+        - createTable:
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: user_roles
+            columnNames: user_id, role
+            constraintName: pk_user_roles
+
+  - changeSet:
+      id: 02
+      author: system
+      changes:
+        - createTable:
+            tableName: teams
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+              - column:
+                  name: color
+                  type: VARCHAR(255)
+              - column:
+                  name: leader_id
+                  type: BIGINT
+        - createTable:
+            tableName: team_members
+            columns:
+              - column:
+                  name: team_id
+                  type: BIGINT
+              - column:
+                  name: user_id
+                  type: BIGINT
+        - addPrimaryKey:
+            tableName: team_members
+            columnNames: team_id, user_id
+            constraintName: pk_team_members
+
+  - changeSet:
+      id: 03
+      author: system
+      changes:
+        - createTable:
+            tableName: fields
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+              - column:
+                  name: address
+                  type: VARCHAR(255)
+              - column:
+                  name: latitude
+                  type: DOUBLE
+              - column:
+                  name: longitude
+                  type: DOUBLE
+              - column:
+                  name: owner_id
+                  type: BIGINT
+              - column:
+                  name: size_x
+                  type: DOUBLE
+              - column:
+                  name: size_y
+                  type: DOUBLE
+              - column:
+                  name: image_url
+                  type: VARCHAR(255)
+
+  - changeSet:
+      id: 04
+      author: system
+      changes:
+        - createTable:
+            tableName: game_maps
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+              - column:
+                  name: field_id
+                  type: BIGINT
+              - column:
+                  name: creator_id
+                  type: BIGINT
+              - column:
+                  name: active
+                  type: BOOLEAN
+
+  - changeSet:
+      id: 05
+      author: system
+      changes:
+        - createTable:
+            tableName: scenarios
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+              - column:
+                  name: game_map_id
+                  type: BIGINT
+              - column:
+                  name: creator_id
+                  type: BIGINT
+              - column:
+                  name: type
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: start_time
+                  type: DATETIME
+              - column:
+                  name: end_time
+                  type: DATETIME
+              - column:
+                  name: max_players
+                  type: INT
+              - column:
+                  name: active
+                  type: BOOLEAN
+
+  - changeSet:
+      id: 06
+      author: system
+      changes:
+        - createTable:
+            tableName: invitations
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: scenario_id
+                  type: BIGINT
+              - column:
+                  name: user_id
+                  type: BIGINT
+              - column:
+                  name: team_id
+                  type: BIGINT
+              - column:
+                  name: status
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: responded_at
+                  type: DATETIME
+  - changeSet:
+      id: 07
+      author: system
+      changes:
+        - addColumn:
+            tableName: game_maps
+            columns:
+              - column:
+                  name: owner_id
+                  type: BIGINT
