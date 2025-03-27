@@ -8,11 +8,13 @@ import com.airsoft.gamemapmaster.service.ConnectedPlayerService;
 import com.airsoft.gamemapmaster.service.GameMapService;
 import com.airsoft.gamemapmaster.service.TeamService;
 import com.airsoft.gamemapmaster.service.UserService;
+import com.airsoft.gamemapmaster.websocket.WebSocketMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,7 +39,8 @@ public class PlayerConnectionController {
 
     @Autowired
     private TeamService teamService;
-
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
     /**
      * Endpoint pour qu'un joueur rejoigne une carte
      */
@@ -193,6 +196,21 @@ public class PlayerConnectionController {
         ConnectedPlayer player = connectedPlayerOpt.get();
         player.setTeam(teamOpt.get());
         connectedPlayerService.save(player);
+
+        // Après l'assignation réussie
+        WebSocketMessage teamUpdateMessage = new WebSocketMessage(
+                "TEAM_UPDATE",
+                Map.of(
+                        "mapId", mapId,
+                        "userId", userId,
+                        "teamId", teamId,
+                        "action", "ASSIGN_PLAYER"
+                ),
+                authentication.getName(),
+                System.currentTimeMillis()
+        );
+
+        messagingTemplate.convertAndSend("/topic/map/" + mapId, teamUpdateMessage);
 
         logger.info("✅ Joueur {} assigné avec succès à l’équipe '{}' (ID={}) sur la carte {}",
                 userId, teamOpt.get().getName(), teamId, mapId);

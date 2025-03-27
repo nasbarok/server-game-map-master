@@ -153,4 +153,13 @@ public class WebSocketController {
             logger.warn("⚠️ Impossible de déconnecter le joueur {} de la carte {}", userId, mapId);
         }
     }
+
+    @MessageMapping("/team-update")
+    public void handleTeamUpdate(@Payload WebSocketMessage message) {
+        Map<String, Object> payload = (Map<String, Object>) message.getPayload();
+        Long mapId = Long.valueOf(payload.get("mapId").toString());
+
+        // Diffuser à tous les joueurs connectés à cette carte
+        messagingTemplate.convertAndSend("/topic/map/" + mapId, message);
+    }
 }
