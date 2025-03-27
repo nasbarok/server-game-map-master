@@ -29,14 +29,20 @@ public class Team {
     @ManyToOne
     @JoinColumn(name = "leader_id")
     private User leader;
-    
-    @ManyToMany
+
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
-        name = "team_members",
-        joinColumns = @JoinColumn(name = "team_id"),
-        inverseJoinColumns = @JoinColumn(name = "user_id")
+            name = "team_members",
+            joinColumns = @JoinColumn(name = "team_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     private Set<User> members = new HashSet<>();
+
+    // Ajouter une méthode pour synchroniser les membres
+    public void syncMembers(Set<User> newMembers) {
+        this.members.clear();
+        this.members.addAll(newMembers);
+    }
 
     @ManyToOne
     @JoinColumn(name = "game_map_id")

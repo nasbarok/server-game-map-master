@@ -1,7 +1,9 @@
 package com.airsoft.gamemapmaster.service.impl;
 
+import com.airsoft.gamemapmaster.model.GameMap;
 import com.airsoft.gamemapmaster.model.Team;
 import com.airsoft.gamemapmaster.model.User;
+import com.airsoft.gamemapmaster.repository.GameMapRepository;
 import com.airsoft.gamemapmaster.repository.TeamRepository;
 import com.airsoft.gamemapmaster.repository.UserRepository;
 import com.airsoft.gamemapmaster.service.TeamService;
@@ -21,6 +23,9 @@ public class TeamServiceImpl implements TeamService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private GameMapRepository gameMapRepository;
+
     @Override
     public List<Team> findAll() {
         return teamRepository.findAll();
@@ -37,7 +42,16 @@ public class TeamServiceImpl implements TeamService {
     }
 
     @Override
+    @Transactional
     public Team save(Team team) {
+        // Vérifier si la carte existe
+        if (team.getGameMap() != null && team.getGameMap().getId() != null) {
+            Optional<GameMap> gameMapOpt = gameMapRepository.findById(team.getGameMap().getId());
+            if (gameMapOpt.isPresent()) {
+                // Assurer que la référence à la carte est correcte
+                team.setGameMap(gameMapOpt.get());
+            }
+        }
         return teamRepository.save(team);
     }
 
