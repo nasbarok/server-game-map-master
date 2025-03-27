@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -185,14 +186,31 @@ public class FieldController {
         List<ConnectedPlayer> connections = connectedPlayerService.findActiveConnectionsByUserId(user.getId());
 
         if (connections.isEmpty()) {
-            return ResponseEntity.ok().body(null); // Pas de connexion active
+            return ResponseEntity.ok(Map.of("active", false));
         }
 
         // 🔁 Récupérer la première GameMap et le Field associé
         GameMap map = connections.get(0).getGameMap();
-        Field field = map.getField();
+        // Vérifier si map est null
+        if (map == null) {
+            return ResponseEntity.ok(Map.of("active", false));
+        }
 
-        return ResponseEntity.ok(field);
+        Field activeField = map.getField();
+
+        // Vérifier si field est null
+        if (activeField == null) {
+            logger.error("Field not found for user {}", user.getId());
+            return ResponseEntity.ok(Map.of(
+                    "active", false,
+                    "id", 0,
+                    "name", "no_field_found",
+                    "fieldId", 0
+            ));
+        }
+        logger.info("Field found: {}", activeField);
+        // Retourner le field avec toutes les informations
+        return ResponseEntity.ok(activeField);
     }
 
 }

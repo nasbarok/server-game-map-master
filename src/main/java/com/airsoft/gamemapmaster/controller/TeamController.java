@@ -1,13 +1,19 @@
 package com.airsoft.gamemapmaster.controller;
 
+import com.airsoft.gamemapmaster.model.ConnectedPlayer;
 import com.airsoft.gamemapmaster.model.DTO.TeamDTO;
 import com.airsoft.gamemapmaster.model.GameMap;
 import com.airsoft.gamemapmaster.model.Team;
+import com.airsoft.gamemapmaster.model.User;
+import com.airsoft.gamemapmaster.service.ConnectedPlayerService;
 import com.airsoft.gamemapmaster.service.GameMapService;
 import com.airsoft.gamemapmaster.service.TeamService;
+import com.airsoft.gamemapmaster.service.UserService;
+import com.airsoft.gamemapmaster.websocket.WebSocketMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +30,16 @@ public class TeamController {
     private TeamService teamService;
     @Autowired
     private GameMapService gameMapService;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private ConnectedPlayerService connectedPlayerService;
+
     @GetMapping
     public ResponseEntity<List<Team>> getAllTeams() {
         return ResponseEntity.ok(teamService.findAll());
@@ -110,4 +126,59 @@ public class TeamController {
 
         return ResponseEntity.ok(teamDtos);
     }
+
+    @PostMapping("/{mapId}/players/{userId}/remove-from-team")
+    public ResponseEntity<?> removePlayerFromTeam(@PathVariable("mapId") Long mapId,
+                                                  @PathVariable("userId") Long userId,
+                                                  Authentication authentication) {
+        String username = authentication.getName();
+        Optional<User> currentUser = userService.findByUsername(username);
+
+        // Vérifications d'autorisation...
+        if (currentUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
+        }
+
+        // Vérifier si la carte existe
+        Optional<GameMap> optionalMap = gameMapService.findById(mapId);
+        if (optionalMap.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Carte non trouvée");
+        }
+
+        // Vérifier si l'utilisateur est le propriétaire
+        if (!optionalMap.get().getOwner().getId().equals(currentUser.get().getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Vous n'êtes pas autorisé à gérer cette carte");
+        }
+
+        // Récupérer le joueur connecté
+        Optional<ConnectedPlayer> connectedPlayerOpt =
+                connectedPlayerService.getConnectedPlayerByUserAndMap(userId, mapId);
+
+        if (connectedPlayerOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Joueur non connecté à cette carte");
+        }
+
+        // Retirer le joueur de l'équipe
+        ConnectedPlayer player = connectedPlayerOpt.get();
+        player.setTeam(null);
+        connectedPlayerService.save(player);
+
+        // Notification WebSocket
+        WebSocketMessage teamUpdateMessage = new WebSocketMessage(
+                "TEAM_UPDATE",
+                Map.of(
+                        "mapId", mapId,
+                        "userId", userId,
+                        "teamId", null,
+                        "action", "REMOVE_FROM_TEAM"
+                ),
+                username,
+                System.currentTimeMillis()
+        );
+
+        messagingTemplate.convertAndSend("/topic/map/" + mapId, teamUpdateMessage);
+
+        return ResponseEntity.ok(player);
+    }
+
 }

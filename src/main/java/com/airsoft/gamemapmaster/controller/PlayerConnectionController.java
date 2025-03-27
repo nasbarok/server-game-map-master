@@ -184,21 +184,28 @@ public class PlayerConnectionController {
             logger.warn("❌ Joueur non connecté à la carte : userId={}, mapId={}", userId, mapId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Joueur non connecté à cette carte");
         }
+        Optional<ConnectedPlayer> updatedPlayer = Optional.empty();
+        String teamName = "no_team";
 
         // 🧪 Vérification que l’équipe existe
         Optional<Team> teamOpt = teamService.findById(teamId);
         if (teamOpt.isEmpty()) {
-            logger.warn("❌ Équipe introuvable : ID={}", teamId);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Équipe non trouvée");
+            //remove the player from the team
+            connectedPlayerOpt.get().setTeam(null);
+            updatedPlayer = connectedPlayerService.save(connectedPlayerOpt.get());
+            logger.info("Joueur {} retiré de l'équipe pour la carte {}", userId, mapId);
+        }else{
+            // ✅ Affectation
+            ConnectedPlayer player = connectedPlayerOpt.get();
+            player.setTeam(teamOpt.get());
+            connectedPlayerService.save(player);
+
+            // Après l'assignation réussie
+            updatedPlayer = connectedPlayerService.save(player);
+            teamName = teamOpt.get().getName();
+            // Log détaillé pour le débogage
+            logger.info("Joueur {} assigné à l'équipe {} pour la carte {}", userId, teamId, mapId);
         }
-
-        // ✅ Affectation
-        ConnectedPlayer player = connectedPlayerOpt.get();
-        player.setTeam(teamOpt.get());
-        connectedPlayerService.save(player);
-
-        // Après l'assignation réussie
-        Optional<ConnectedPlayer> connectedPlayer = connectedPlayerService.save(player);
 
         // Envoyer une notification WebSocket
         WebSocketMessage teamUpdateMessage = new WebSocketMessage(
@@ -207,7 +214,7 @@ public class PlayerConnectionController {
                         "mapId", mapId,
                         "userId", userId,
                         "teamId", teamId,
-                        "teamName", teamOpt.get().getName(),
+                        "teamName", teamName,
                         "action", "ASSIGN_PLAYER"
                 ),
                 authentication.getName(),
@@ -217,7 +224,7 @@ public class PlayerConnectionController {
         messagingTemplate.convertAndSend("/topic/map/" + mapId, teamUpdateMessage);
 
         // Retourner le joueur connecté avec toutes les informations à jour
-        return ResponseEntity.ok(connectedPlayer);
+        return ResponseEntity.ok(updatedPlayer);
     }
 
 }

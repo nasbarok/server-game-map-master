@@ -3,6 +3,7 @@ package com.airsoft.gamemapmaster.controller;
 import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.GameMap;
 import com.airsoft.gamemapmaster.model.User;
+import com.airsoft.gamemapmaster.service.FieldService;
 import com.airsoft.gamemapmaster.service.GameMapService;
 import com.airsoft.gamemapmaster.service.UserService;
 import org.slf4j.Logger;
@@ -27,6 +28,9 @@ public class GameMapController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private FieldService fieldService;
     private static final Logger logger = LoggerFactory.getLogger(GameMapController.class);
 
     @GetMapping
@@ -54,13 +58,40 @@ public class GameMapController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<GameMap> updateMap(@PathVariable Long id, @RequestBody GameMap gameMap) {
-        return gameMapService.findById(id)
-                .map(existingMap -> {
-                    gameMap.setId(id);
-                    return ResponseEntity.ok(gameMapService.save(gameMap));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<GameMap> updateMap(@PathVariable Long id, @RequestBody GameMap gameMapInput) {
+        Optional<GameMap> existingOpt = gameMapService.findById(id);
+        if (existingOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        GameMap existingMap = existingOpt.get();
+
+        // 🔄 Mise à jour des champs de base
+        existingMap.setName(gameMapInput.getName());
+        existingMap.setDescription(gameMapInput.getDescription());
+        existingMap.setOwner(gameMapInput.getOwner());
+        // ✅ Mise à jour sécurisée des scénarios
+        if (existingMap.getScenarios() != null) {
+            existingMap.getScenarios().clear();
+            if (gameMapInput.getScenarios() != null) {
+                existingMap.getScenarios().addAll(gameMapInput.getScenarios());
+            }
+        }
+        // 🧭 Mise à jour du terrain lié si un fieldId est fourni
+        if (gameMapInput.getField() != null) {
+            Optional<Field> fieldOpt = fieldService.findById(gameMapInput.getField().getId());
+            if (fieldOpt.isPresent()) {
+                existingMap.setField(fieldOpt.get());
+            } else {
+                return ResponseEntity.badRequest().body(null); // ou tu peux lancer une exception personnalisée
+            }
+        } else {
+            existingMap.setField(null); // facultatif : réinitialiser si aucun fieldId fourni
+        }
+
+        GameMap saved = gameMapService.save(existingMap);
+
+        return ResponseEntity.ok(saved);
     }
 
     @DeleteMapping("/{id}")
