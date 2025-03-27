@@ -312,3 +312,83 @@ databaseChangeLog:
             tableName: connected_players
             columnNames: user_id, game_map_id
             constraintName: uk_connected_player_user_map
+  - changeSet:
+      id: 09
+      author: system
+      changes:
+        - addColumn:
+            tableName: fields
+            columns:
+              - column:
+                  name: opened_at
+                  type: datetime
+                  constraints:
+                    nullable: true
+              - column:
+                  name: closed_at
+                  type: datetime
+                  constraints:
+                    nullable: true
+              - column:
+                  name: active
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 10
+      author: dev
+      changes:
+        - createTable:
+            tableName: field_user_history
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: field_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_history_field
+                    references: fields(id)
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_history_user
+                    references: users(id)
+              - column:
+                  name: joined_at
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: left_at
+                  type: DATETIME
+              - column:
+                  name: session_closed
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: XX-add-game-map-to-team
+      author: system
+      changes:
+        - addColumn:
+            tableName: teams
+            columns:
+              - column:
+                  name: game_map_id
+                  type: BIGINT
+        - addForeignKeyConstraint:
+            baseTableName: teams
+            baseColumnNames: game_map_id
+            constraintName: fk_teams_game_map
+            referencedTableName: game_maps
+            referencedColumnNames: id

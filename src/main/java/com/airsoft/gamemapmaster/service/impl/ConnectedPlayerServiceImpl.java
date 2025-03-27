@@ -119,4 +119,25 @@ public class ConnectedPlayerServiceImpl implements ConnectedPlayerService {
         
         return Optional.empty();
     }
+
+    @Override
+    public Team findTeamByUserAndMap(Long fromUserId, Long mapId) {
+        return connectedPlayerRepository.findTeamByUserAndMap(fromUserId, mapId);
+    }
+
+    @Override
+    public Optional<ConnectedPlayer> getConnectedPlayerByUserAndMap(Long userId, Long mapId) {
+        return connectedPlayerRepository.findByUserIdAndGameMapIdAndActiveTrue(userId, mapId);
+    }
+
+    @Override
+    public Optional<ConnectedPlayer> save(ConnectedPlayer player) {
+        return Optional.of(connectedPlayerRepository.save(player));
+    }
+
+    @Override
+    public List<ConnectedPlayer> findActiveConnectionsByUserId(Long id) {
+        return connectedPlayerRepository.findByUserIdAndActiveTrue(id);
+    }
+
 }

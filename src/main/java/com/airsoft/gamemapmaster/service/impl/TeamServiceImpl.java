@@ -77,4 +77,9 @@ public class TeamServiceImpl implements TeamService {
         
         return Optional.empty();
     }
+
+    @Override
+    public List<Team> findTeamsByMap(Long mapId) {
+        return teamRepository.findByGameMapId(mapId);
+    }
 }

@@ -11,4 +11,6 @@ public interface FieldService {
     List<Field> findByOwnerId(Long ownerId);
     Field save(Field field);
     void deleteById(Long id);
+
+    List<Field> findByOwnerIdAndActiveTrue(Long id);
 }

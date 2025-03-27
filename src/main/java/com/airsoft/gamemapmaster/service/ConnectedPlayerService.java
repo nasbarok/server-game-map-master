@@ -65,4 +65,12 @@ public interface ConnectedPlayerService {
      * @return Le joueur connecté mis à jour
      */
     Optional<ConnectedPlayer> assignPlayerToTeam(Long gameMapId, Long userId, Long teamId);
+
+    Team findTeamByUserAndMap(Long fromUserId, Long mapId);
+
+    Optional<ConnectedPlayer> getConnectedPlayerByUserAndMap(Long userId, Long mapId);
+
+    Optional<ConnectedPlayer> save(ConnectedPlayer player);
+
+    List<ConnectedPlayer> findActiveConnectionsByUserId(Long id);
 }

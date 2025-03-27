@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface GameMapRepository extends JpaRepository<GameMap, Long> {
@@ -12,4 +13,6 @@ public interface GameMapRepository extends JpaRepository<GameMap, Long> {
     List<GameMap> findByCreatorId(Long creatorId);
 
     List<GameMap> findByOwnerId(Long id);
+
+    Optional<GameMap> findFirstByFieldId(Long fieldId);
 }

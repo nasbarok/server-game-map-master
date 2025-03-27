@@ -14,4 +14,6 @@ public interface GameMapService {
     void deleteById(Long id);
 
     List<GameMap> findByOwnerId(Long id);
+
+    Optional<GameMap> findFirstByFieldId(Long fieldId);
 }

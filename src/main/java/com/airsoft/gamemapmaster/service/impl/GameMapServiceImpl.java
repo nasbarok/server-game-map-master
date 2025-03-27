@@ -49,4 +49,9 @@ public class GameMapServiceImpl implements GameMapService {
     public List<GameMap> findByOwnerId(Long id) {
         return gameMapRepository.findByOwnerId(id);
     }
+
+    @Override
+    public Optional<GameMap> findFirstByFieldId(Long fieldId) {
+        return gameMapRepository.findFirstByFieldId(fieldId);
+    }
 }

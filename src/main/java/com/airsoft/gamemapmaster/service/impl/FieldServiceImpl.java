@@ -39,4 +39,9 @@ public class FieldServiceImpl implements FieldService {
     public void deleteById(Long id) {
         fieldRepository.deleteById(id);
     }
+
+    @Override
+    public List<Field> findByOwnerIdAndActiveTrue(Long id) {
+        return fieldRepository.findByOwnerIdAndActiveTrue(id);
+    }
 }

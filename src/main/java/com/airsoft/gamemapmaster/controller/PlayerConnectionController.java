@@ -2,9 +2,11 @@ package com.airsoft.gamemapmaster.controller;
 
 import com.airsoft.gamemapmaster.model.ConnectedPlayer;
 import com.airsoft.gamemapmaster.model.GameMap;
+import com.airsoft.gamemapmaster.model.Team;
 import com.airsoft.gamemapmaster.model.User;
 import com.airsoft.gamemapmaster.service.ConnectedPlayerService;
 import com.airsoft.gamemapmaster.service.GameMapService;
+import com.airsoft.gamemapmaster.service.TeamService;
 import com.airsoft.gamemapmaster.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +34,9 @@ public class PlayerConnectionController {
 
     @Autowired
     private GameMapService gameMapService;
+
+    @Autowired
+    private TeamService teamService;
 
     /**
      * Endpoint pour qu'un joueur rejoigne une carte
@@ -143,41 +148,56 @@ public class PlayerConnectionController {
         String username = authentication.getName();
         Optional<User> currentUser = userService.findByUsername(username);
 
+        // 🔐 Vérification utilisateur
         if (currentUser.isEmpty()) {
-            logger.warn("Tentative d'assignation d'un joueur à une équipe par un utilisateur non trouvé : {}", username);
+            logger.warn("❌ Utilisateur non trouvé pour le token JWT : {}", username);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
         }
 
         Long ownerId = currentUser.get().getId();
-        logger.info("Utilisateur {} (ID: {}) tente d'assigner l'utilisateur {} à l'équipe {} sur la carte {}",
+        logger.info("🧾 Utilisateur '{}' (ID: {}) tente d'assigner le joueur {} à l'équipe {} sur la carte {}",
                 username, ownerId, userId, teamId, mapId);
 
+        // 📍 Vérification que la carte existe
         Optional<GameMap> optionalMap = gameMapService.findById(mapId);
-
         if (optionalMap.isEmpty()) {
-            logger.warn("Carte {} introuvable pour l'assignation du joueur {} à l'équipe {}", mapId, userId, teamId);
+            logger.warn("❌ Carte introuvable : ID={}", mapId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Carte non trouvée");
         }
 
         GameMap gameMap = optionalMap.get();
 
+        // 🔒 Vérification que l'utilisateur est le propriétaire
         if (!gameMap.getOwner().getId().equals(ownerId)) {
-            logger.warn("Utilisateur {} (ID: {}) n'est pas propriétaire de la carte {} et ne peut pas assigner de joueurs",
-                    username, ownerId, mapId);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("Vous n'êtes pas autorisé à assigner des joueurs à des équipes");
+            logger.warn("❌ Accès refusé : utilisateur {} (ID: {}) n'est pas le propriétaire de la carte {}", username, ownerId, mapId);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Vous n'êtes pas autorisé à gérer cette carte");
         }
 
-        Optional<ConnectedPlayer> assignment = connectedPlayerService.assignPlayerToTeam(mapId, userId, teamId);
+        // 🔍 Vérification que le joueur est bien connecté à cette carte
+        Optional<ConnectedPlayer> connectedPlayerOpt =
+                connectedPlayerService.getConnectedPlayerByUserAndMap(userId, mapId);
 
-        if (assignment.isPresent()) {
-            logger.info("Joueur {} assigné avec succès à l'équipe {} sur la carte {}", userId, teamId, mapId);
-            return ResponseEntity.ok(assignment.get());
-        } else {
-            logger.warn("Échec de l'assignation du joueur {} à l'équipe {} sur la carte {} : joueur ou équipe introuvable",
-                    userId, teamId, mapId);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Joueur ou équipe non trouvé");
+        if (connectedPlayerOpt.isEmpty()) {
+            logger.warn("❌ Joueur non connecté à la carte : userId={}, mapId={}", userId, mapId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Joueur non connecté à cette carte");
         }
+
+        // 🧪 Vérification que l’équipe existe
+        Optional<Team> teamOpt = teamService.findById(teamId);
+        if (teamOpt.isEmpty()) {
+            logger.warn("❌ Équipe introuvable : ID={}", teamId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Équipe non trouvée");
+        }
+
+        // ✅ Affectation
+        ConnectedPlayer player = connectedPlayerOpt.get();
+        player.setTeam(teamOpt.get());
+        connectedPlayerService.save(player);
+
+        logger.info("✅ Joueur {} assigné avec succès à l’équipe '{}' (ID={}) sur la carte {}",
+                userId, teamOpt.get().getName(), teamId, mapId);
+
+        return ResponseEntity.ok(player);
     }
 
 }

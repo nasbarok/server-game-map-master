@@ -37,4 +37,8 @@ public class Team {
         inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     private Set<User> members = new HashSet<>();
+
+    @ManyToOne
+    @JoinColumn(name = "game_map_id")
+    private GameMap gameMap;
 }
