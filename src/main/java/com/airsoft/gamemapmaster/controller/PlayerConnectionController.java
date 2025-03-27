@@ -198,12 +198,16 @@ public class PlayerConnectionController {
         connectedPlayerService.save(player);
 
         // Après l'assignation réussie
+        Optional<ConnectedPlayer> connectedPlayer = connectedPlayerService.save(player);
+
+        // Envoyer une notification WebSocket
         WebSocketMessage teamUpdateMessage = new WebSocketMessage(
                 "TEAM_UPDATE",
                 Map.of(
                         "mapId", mapId,
                         "userId", userId,
                         "teamId", teamId,
+                        "teamName", teamOpt.get().getName(),
                         "action", "ASSIGN_PLAYER"
                 ),
                 authentication.getName(),
@@ -212,10 +216,8 @@ public class PlayerConnectionController {
 
         messagingTemplate.convertAndSend("/topic/map/" + mapId, teamUpdateMessage);
 
-        logger.info("✅ Joueur {} assigné avec succès à l’équipe '{}' (ID={}) sur la carte {}",
-                userId, teamOpt.get().getName(), teamId, mapId);
-
-        return ResponseEntity.ok(player);
+        // Retourner le joueur connecté avec toutes les informations à jour
+        return ResponseEntity.ok(connectedPlayer);
     }
 
 }
