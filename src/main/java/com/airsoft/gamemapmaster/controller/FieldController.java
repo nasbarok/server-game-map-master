@@ -1,9 +1,7 @@
 package com.airsoft.gamemapmaster.controller;
 
-import com.airsoft.gamemapmaster.model.ConnectedPlayer;
-import com.airsoft.gamemapmaster.model.Field;
-import com.airsoft.gamemapmaster.model.GameMap;
-import com.airsoft.gamemapmaster.model.User;
+import com.airsoft.gamemapmaster.model.*;
+import com.airsoft.gamemapmaster.repository.FieldUserHistoryRepository;
 import com.airsoft.gamemapmaster.service.ConnectedPlayerService;
 import com.airsoft.gamemapmaster.service.FieldService;
 import com.airsoft.gamemapmaster.service.UserService;
@@ -37,6 +35,9 @@ public class FieldController {
     @Autowired
     private ConnectedPlayerService connectedPlayerService;
 
+    @Autowired
+    private FieldUserHistoryRepository historyRepository;
+
     @GetMapping
     public ResponseEntity<List<Field>> getAllFields() {
         return ResponseEntity.ok(fieldService.findAll());
@@ -55,6 +56,8 @@ public class FieldController {
         if (owner.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        field.setOpenedAt(LocalDateTime.now());
+        field.setActive(true);
         field.setOwner(owner.get()); // Associe le terrain au propriétaire connecté
         Field saved = fieldService.save(field);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
@@ -112,7 +115,7 @@ public class FieldController {
         }
 
         if (field.isActive()) {
-            return ResponseEntity.badRequest().body("Le terrain est déjà ouvert.");
+            return ResponseEntity.ok(field);
         }
 
         field.setOpenedAt(LocalDateTime.now());
@@ -138,7 +141,7 @@ public class FieldController {
         }
 
         if (!field.isActive()) {
-            return ResponseEntity.badRequest().body("Le terrain est déjà fermé.");
+            return ResponseEntity.ok(field);
         }
 
         field.setClosedAt(LocalDateTime.now());
@@ -182,35 +185,36 @@ public class FieldController {
 
         User user = userOpt.get();
 
-        // 🔍 Trouver tous les ConnectedPlayers actifs de cet utilisateur
-        List<ConnectedPlayer> connections = connectedPlayerService.findActiveConnectionsByUserId(user.getId());
-
-        if (connections.isEmpty()) {
-            return ResponseEntity.ok(Map.of("active", false));
-        }
-
-        // 🔁 Récupérer la première GameMap et le Field associé
-        GameMap map = connections.get(0).getGameMap();
-        // Vérifier si map est null
-        if (map == null) {
-            return ResponseEntity.ok(Map.of("active", false));
-        }
-
-        Field activeField = map.getField();
-
-        // Vérifier si field est null
-        if (activeField == null) {
-            logger.error("Field not found for user {}", user.getId());
+        // 1️⃣ Si l'utilisateur est propriétaire d'un terrain actif
+        Optional<Field> optionnalActiveField = fieldService.findLastOpenedFieldByOwner(user.getId());
+        if (!optionnalActiveField.isEmpty()) {
+            Field activeField = optionnalActiveField.get(); // un seul terrain actif par owner
             return ResponseEntity.ok(Map.of(
-                    "active", false,
-                    "id", 0,
-                    "name", "no_field_found",
-                    "fieldId", 0
+                    "active", true,
+                    "role", "HOST",
+                    "field", activeField
             ));
         }
-        logger.info("Field found: {}", activeField);
-        // Retourner le field avec toutes les informations
-        return ResponseEntity.ok(activeField);
+
+        // 2️⃣ Sinon, vérifier s'il est un joueur actuellement dans une session ouverte
+        Optional<FieldUserHistory> activeSession =
+                historyRepository.findByUserIdAndSessionClosedFalse(user.getId());
+
+        if (activeSession.isPresent()) {
+            Field activeField = activeSession.get().getField();
+            User host = activeField.getOwner();
+            host.setPassword(null);
+            activeField.setOwner(host);
+            return ResponseEntity.ok(Map.of(
+                    "active", true,
+                    "role", "GAMER",
+                    "field", activeField
+            ));
+        }
+
+        // ❌ Aucun terrain actif trouvé pour ce joueur
+        return ResponseEntity.ok(Map.of("active", false));
     }
+
 
 }

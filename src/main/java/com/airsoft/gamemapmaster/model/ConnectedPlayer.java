@@ -41,4 +41,8 @@ public class ConnectedPlayer {
     protected void onCreate() {
         joinedAt = LocalDateTime.now();
     }
+
+    @ManyToOne
+    @JoinColumn(name = "field_id")
+    private Field field;
 }

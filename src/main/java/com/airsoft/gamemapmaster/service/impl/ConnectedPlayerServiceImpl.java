@@ -1,13 +1,11 @@
 package com.airsoft.gamemapmaster.service.impl;
 
-import com.airsoft.gamemapmaster.model.ConnectedPlayer;
-import com.airsoft.gamemapmaster.model.GameMap;
-import com.airsoft.gamemapmaster.model.Team;
-import com.airsoft.gamemapmaster.model.User;
+import com.airsoft.gamemapmaster.model.*;
 import com.airsoft.gamemapmaster.repository.ConnectedPlayerRepository;
 import com.airsoft.gamemapmaster.repository.GameMapRepository;
 import com.airsoft.gamemapmaster.repository.TeamRepository;
 import com.airsoft.gamemapmaster.repository.UserRepository;
+import com.airsoft.gamemapmaster.repository.FieldRepository;
 import com.airsoft.gamemapmaster.service.ConnectedPlayerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,6 +28,8 @@ public class ConnectedPlayerServiceImpl implements ConnectedPlayerService {
     
     @Autowired
     private TeamRepository teamRepository;
+    @Autowired
+    private FieldRepository fieldRepository;
 
     @Override
     @Transactional
@@ -138,6 +138,43 @@ public class ConnectedPlayerServiceImpl implements ConnectedPlayerService {
     @Override
     public List<ConnectedPlayer> findActiveConnectionsByUserId(Long id) {
         return connectedPlayerRepository.findByUserIdAndActiveTrue(id);
+    }
+
+    @Override
+    public boolean isPlayerConnectedToField(Long fieldId, Long fromUserId) {
+        return connectedPlayerRepository.existsByUserIdAndFieldIdAndActiveTrue(fromUserId, fieldId);
+    }
+
+    @Override
+    public ConnectedPlayer connectPlayerToField(Long fieldId, Long fromUserId, Long teamId) {
+        // Vérifier si le joueur est déjà connecté à cette carte
+        if (connectedPlayerRepository.existsByUserIdAndFieldIdAndActiveTrue(fromUserId, fieldId)) {
+            Optional<ConnectedPlayer> existingPlayer = connectedPlayerRepository.findByUserIdAndFieldIdAndActiveTrue(fromUserId, fieldId);
+            return existingPlayer.orElse(null);
+        }
+
+        // Récupérer les entités nécessaires
+        Optional<Field> field = fieldRepository.findById(fieldId);
+        Optional<User> user = userRepository.findById(fromUserId);
+        Optional<GameMap> gameMap = gameMapRepository.findFirstByFieldId(fieldId);
+
+        if (field.isEmpty() || user.isEmpty()) {
+            return null;
+        }
+
+        // Créer un nouveau joueur connecté
+        ConnectedPlayer connectedPlayer = new ConnectedPlayer();
+        connectedPlayer.setField(field.get());
+        connectedPlayer.setUser(user.get());
+        connectedPlayer.setGameMap(gameMap.get());
+
+        // Assigner à une équipe si spécifiée
+        if (teamId != null) {
+            Optional<Team> team = teamRepository.findById(teamId);
+            team.ifPresent(connectedPlayer::setTeam);
+        }
+
+        return connectedPlayerRepository.save(connectedPlayer);
     }
 
 }

@@ -13,4 +13,6 @@ public interface FieldService {
     void deleteById(Long id);
 
     List<Field> findByOwnerIdAndActiveTrue(Long id);
+    public Optional<Field> findLastOpenedFieldByOwner(Long ownerId);
+
 }

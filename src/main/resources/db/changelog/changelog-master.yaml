@@ -392,3 +392,21 @@ databaseChangeLog:
             constraintName: fk_teams_game_map
             referencedTableName: game_maps
             referencedColumnNames: id
+  - changeSet:
+      id: 08b
+      author: developer
+      changes:
+        - addColumn:
+            tableName: connected_players
+            columns:
+              - column:
+                  name: field_id
+                  type: bigint
+                  constraints:
+                    nullable: true
+        - addForeignKeyConstraint:
+            baseTableName: connected_players
+            baseColumnNames: field_id
+            constraintName: fk_connected_player_field
+            referencedTableName: fields
+            referencedColumnNames: id

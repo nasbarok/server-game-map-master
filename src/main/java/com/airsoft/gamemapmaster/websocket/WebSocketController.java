@@ -100,19 +100,20 @@ public class WebSocketController {
         Long fromUserId = Long.valueOf(payload.get("fromUserId").toString());
         Long toUserId = Long.valueOf(payload.get("toUserId").toString());
         Long mapId = Long.valueOf(payload.get("mapId").toString());
+        Long fieldId = Long.valueOf(payload.get("fieldId").toString());
         boolean accepted = Boolean.parseBoolean(payload.get("accepted").toString());
 
         // ✅ Récupération du joueur
         Optional<User> fromUser = userService.findById(fromUserId);
 
-        // ✅ Si accepté, connecter le joueur à la carte s'il ne l'est pas déjà
+        // ✅ Si accepté, connecter le joueur au field s'il ne l'est pas déjà
         if (accepted) {
-            boolean alreadyConnected = connectedPlayerService.isPlayerConnectedToMap(mapId, fromUserId);
+            boolean alreadyConnected = connectedPlayerService.isPlayerConnectedToField(fieldId, fromUserId);
             if (!alreadyConnected) {
                 logger.info("📡 Connexion du joueur {} à la carte {}", fromUserId, mapId);
-                connectedPlayerService.connectPlayerToMap(mapId, fromUserId, null); // Pas d'équipe au départ
+                connectedPlayerService.connectPlayerToField(fieldId, fromUserId, null); // Pas d'équipe au départ
                 // 🔹 Ajout dans l'historique de connexion
-                fieldUserHistoryService.logJoin(mapId, fromUserId);
+                fieldUserHistoryService.logJoin(fromUserId,fieldId);
             }
         }
 

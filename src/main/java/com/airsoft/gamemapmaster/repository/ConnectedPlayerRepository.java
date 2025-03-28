@@ -27,4 +27,8 @@ public interface ConnectedPlayerRepository extends JpaRepository<ConnectedPlayer
 
     @Query("SELECT cp.team  FROM ConnectedPlayer cp WHERE cp.user.id = :userId AND cp.gameMap.id = :mapId AND cp.active = true")
     Team findTeamByUserAndMap(@Param("userId") Long userId, @Param("mapId") Long mapId);
+
+    boolean existsByUserIdAndFieldIdAndActiveTrue(Long fromUserId, Long fieldId);
+
+    Optional<ConnectedPlayer> findByUserIdAndFieldIdAndActiveTrue(Long fromUserId, Long fieldId);
 }

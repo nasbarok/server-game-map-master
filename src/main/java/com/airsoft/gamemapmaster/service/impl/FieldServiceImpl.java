@@ -44,4 +44,10 @@ public class FieldServiceImpl implements FieldService {
     public List<Field> findByOwnerIdAndActiveTrue(Long id) {
         return fieldRepository.findByOwnerIdAndActiveTrue(id);
     }
+
+    @Override
+    public Optional<Field> findLastOpenedFieldByOwner(Long ownerId) {
+        List<Field> results = fieldRepository.findLastOpenedFieldByOwner(ownerId);
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    }
 }

@@ -73,4 +73,8 @@ public interface ConnectedPlayerService {
     Optional<ConnectedPlayer> save(ConnectedPlayer player);
 
     List<ConnectedPlayer> findActiveConnectionsByUserId(Long id);
+
+    boolean isPlayerConnectedToField(Long fieldId, Long fromUserId);
+
+    public ConnectedPlayer connectPlayerToField(Long fieldId, Long fromUserId, Long teamId);
 }
