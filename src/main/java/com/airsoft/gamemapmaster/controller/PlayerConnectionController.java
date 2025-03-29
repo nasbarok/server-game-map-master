@@ -113,9 +113,9 @@ public class PlayerConnectionController {
     /**
      * Endpoint pour assigner un joueur à une équipe
      */
-    @PostMapping("/{mapId}/players/{userId}/team/{teamId}")
+    @PostMapping("/{mapId}/players/{playerId}/team/{teamId}")
     public ResponseEntity<?> assignPlayerToTeam(@PathVariable("mapId") Long mapId,
-                                                @PathVariable("userId") Long userId,
+                                                @PathVariable("playerId") Long playerId,
                                                 @PathVariable("teamId") Long teamId,
                                                 Authentication authentication) {
         String username = authentication.getName();
@@ -129,7 +129,7 @@ public class PlayerConnectionController {
 
         Long ownerId = currentUser.get().getId();
         logger.info("🧾 Utilisateur '{}' (ID: {}) tente d'assigner le joueur {} à l'équipe {} sur la carte {}",
-                username, ownerId, userId, teamId, mapId);
+                username, ownerId, playerId, teamId, mapId);
 
         // 📍 Vérification que la carte existe
         Optional<GameMap> optionalMap = gameMapService.findById(mapId);
@@ -142,10 +142,10 @@ public class PlayerConnectionController {
 
         // 🔍 Vérification que le joueur est bien connecté à cette carte
         Optional<ConnectedPlayer> connectedPlayerOpt =
-                connectedPlayerService.getConnectedPlayerByUserAndMap(userId, mapId);
+                connectedPlayerService.getConnectedPlayerByUserAndMap(playerId, mapId);
 
         if (connectedPlayerOpt.isEmpty()) {
-            logger.warn("❌ Joueur non connecté à la carte : userId={}, mapId={}", userId, mapId);
+            logger.warn("❌ Joueur non connecté à la carte : userId={}, mapId={}", playerId, mapId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Joueur non connecté à cette carte");
         }
         Optional<ConnectedPlayer> updatedPlayer = Optional.empty();
@@ -157,7 +157,7 @@ public class PlayerConnectionController {
             //remove the player from the team
             connectedPlayerOpt.get().setTeam(null);
             updatedPlayer = connectedPlayerService.save(connectedPlayerOpt.get());
-            logger.info("Joueur {} retiré de l'équipe pour la carte {}", userId, mapId);
+            logger.info("Joueur {} retiré de l'équipe pour la carte {}", playerId, mapId);
         }else{
             // ✅ Affectation
             ConnectedPlayer player = connectedPlayerOpt.get();
@@ -168,7 +168,7 @@ public class PlayerConnectionController {
             updatedPlayer = connectedPlayerService.save(player);
             teamName = teamOpt.get().getName();
             // Log détaillé pour le débogage
-            logger.info("Joueur {} assigné à l'équipe {} pour la carte {}", userId, teamId, mapId);
+            logger.info("Joueur {} assigné à l'équipe {} pour la carte {}", playerId, teamId, mapId);
         }
 
         // Envoyer une notification WebSocket
@@ -176,7 +176,7 @@ public class PlayerConnectionController {
                 "TEAM_UPDATE",
                 Map.of(
                         "mapId", mapId,
-                        "userId", userId,
+                        "userId", playerId,
                         "teamId", teamId,
                         "teamName", teamName,
                         "action", "ASSIGN_PLAYER"
