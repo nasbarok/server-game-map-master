@@ -92,6 +92,17 @@ public class PlayerConnectionController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Vous n'êtes pas connecté à cette carte");
         }
 
+        WebSocketMessage playerDisconnectedMessage = new WebSocketMessage(
+                "PLAYER_DISCONNECTED",
+                Map.of(
+                        "userId", user.get().getId(),
+                        "username", user.get().getUsername(),
+                        "fieldId", fieldId
+                ),
+                authentication.getName(),
+                System.currentTimeMillis()
+        );
+        messagingTemplate.convertAndSend("/topic/field/" + fieldId, playerDisconnectedMessage);
         return ResponseEntity.ok(Map.of("message", "Vous avez quitté la carte avec succès"));
     }
 
@@ -102,7 +113,7 @@ public class PlayerConnectionController {
     public ResponseEntity<?> getConnectedPlayers(@PathVariable("fieldId") Long fieldId) {
         // Vérifier si la carte existe
         if (fieldService.findById(fieldId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Carte non trouvée");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Field non trouvée");
         }
 
         List<ConnectedPlayer> connectedPlayers = connectedPlayerService.getConnectedPlayersByFieldId(fieldId);
@@ -176,6 +187,7 @@ public class PlayerConnectionController {
                 "TEAM_UPDATE",
                 Map.of(
                         "mapId", mapId,
+                        "fieldId", gameMap.getField().getId(),
                         "userId", playerId,
                         "teamId", teamId,
                         "teamName", teamName,
@@ -185,7 +197,7 @@ public class PlayerConnectionController {
                 System.currentTimeMillis()
         );
 
-        messagingTemplate.convertAndSend("/topic/map/" + mapId, teamUpdateMessage);
+        messagingTemplate.convertAndSend("/topic/field/" + gameMap.getField().getId(), teamUpdateMessage);
 
         // Retourner le joueur connecté avec toutes les informations à jour
         return ResponseEntity.ok(updatedPlayer);

@@ -1,6 +1,7 @@
 package com.airsoft.gamemapmaster.websocket;
 
 import com.airsoft.gamemapmaster.controller.GameMapController;
+import com.airsoft.gamemapmaster.model.ConnectedPlayer;
 import com.airsoft.gamemapmaster.model.Team;
 import com.airsoft.gamemapmaster.model.User;
 import com.airsoft.gamemapmaster.service.ConnectedPlayerService;
@@ -111,9 +112,26 @@ public class WebSocketController {
             boolean alreadyConnected = connectedPlayerService.isPlayerConnectedToField(fieldId, fromUserId);
             if (!alreadyConnected) {
                 logger.info("📡 Connexion du joueur {} à la carte {}", fromUserId, mapId);
-                connectedPlayerService.connectPlayerToField(fieldId, fromUserId, null); // Pas d'équipe au départ
+                ConnectedPlayer connectedPlayer = connectedPlayerService.connectPlayerToField(fieldId, fromUserId, null); // Pas d'équipe au départ
                 // 🔹 Ajout dans l'historique de connexion
                 fieldUserHistoryService.logJoin(fromUserId,fieldId);
+
+                WebSocketMessage playerConnectedMessage = new WebSocketMessage(
+                        "PLAYER_CONNECTED",
+                        Map.of(
+                                "player", Map.of(
+                                        "id", connectedPlayer.getUser().getId(),
+                                        "username", connectedPlayer.getUser().getUsername(),
+                                        "teamId", connectedPlayer.getTeam() != null ? connectedPlayer.getTeam().getId() : null,
+                                        "teamName", connectedPlayer.getTeam() != null ? connectedPlayer.getTeam().getName() : null
+                                ),
+                                "fieldId", fieldId
+                        ),
+                        fromUserId.toString(),
+                        System.currentTimeMillis()
+                );
+                // 🔹 Envoi du message à tous les utilisateurs connectés au terrain
+                messagingTemplate.convertAndSend("/topic/field/" + fieldId, playerConnectedMessage);
             }
         }
 
@@ -153,14 +171,5 @@ public class WebSocketController {
         } else {
             logger.warn("⚠️ Impossible de déconnecter le joueur {} de la carte {}", userId, mapId);
         }
-    }
-
-    @MessageMapping("/team-update")
-    public void handleTeamUpdate(@Payload WebSocketMessage message) {
-        Map<String, Object> payload = (Map<String, Object>) message.getPayload();
-        Long mapId = Long.valueOf(payload.get("mapId").toString());
-
-        // Diffuser à tous les joueurs connectés à cette carte
-        messagingTemplate.convertAndSend("/topic/map/" + mapId, message);
     }
 }

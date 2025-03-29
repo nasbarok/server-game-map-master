@@ -450,3 +450,10 @@ databaseChangeLog:
             referencedColumnNames: id
             constraintName: fk_game_session_field
             onDelete: CASCADE
+  - changeSet:
+      id: 08c
+      author: developer
+      changes:
+        - dropUniqueConstraint:
+            tableName: connected_players
+            constraintName: uk_connected_player_user_map

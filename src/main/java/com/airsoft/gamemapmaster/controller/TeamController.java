@@ -1,10 +1,7 @@
 package com.airsoft.gamemapmaster.controller;
 
-import com.airsoft.gamemapmaster.model.ConnectedPlayer;
+import com.airsoft.gamemapmaster.model.*;
 import com.airsoft.gamemapmaster.model.DTO.TeamDTO;
-import com.airsoft.gamemapmaster.model.GameMap;
-import com.airsoft.gamemapmaster.model.Team;
-import com.airsoft.gamemapmaster.model.User;
 import com.airsoft.gamemapmaster.service.ConnectedPlayerService;
 import com.airsoft.gamemapmaster.service.GameMapService;
 import com.airsoft.gamemapmaster.service.TeamService;
@@ -17,6 +14,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,7 +56,8 @@ public class TeamController {
     }
 
     @PostMapping("/map/{mapId}/create")
-    public ResponseEntity<TeamDTO> createTeamWithMap(@PathVariable Long mapId, @RequestBody Map<String, String> body) {
+    public ResponseEntity<TeamDTO> createTeamWithMap(@PathVariable Long mapId, @RequestBody Map<String, String> body,
+                                                     Authentication authentication) {
         String name = body.get("name");
 
         if (name == null || name.isEmpty()) {
@@ -75,27 +74,93 @@ public class TeamController {
         team.setGameMap(optionalMap.get());
 
         Team saved = teamService.save(team);
+
+        WebSocketMessage teamCreatedMessage = new WebSocketMessage(
+                "TEAM_CREATED",
+                Map.of(
+                        "team", Map.of(
+                                "id", team.getId(),
+                                "name", team.getName(),
+                                "players", Collections.emptyList()
+                        ),
+                        "mapId", mapId
+                ),
+                authentication.getName(),
+                System.currentTimeMillis()
+        );
+
+        messagingTemplate.convertAndSend("/topic/field/" + optionalMap.get().getField().getId(), teamCreatedMessage);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(TeamDTO.fromEntity(saved));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Team> updateTeam(@PathVariable Long id, @RequestBody Team team) {
-        return teamService.findById(id)
-                .map(existingTeam -> {
-                    team.setId(id);
-                    return ResponseEntity.ok(teamService.save(team));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Team> updateTeam(@PathVariable Long id, @RequestBody Team team, Authentication authentication) {
+
+        // 🔹 Étape 1 : Vérifier si l'équipe existe
+        Optional<Team> optionalTeam = teamService.findById(id);
+        if (optionalTeam.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // 🔹 Étape 2 : Mettre à jour les champs de l'équipe
+        team.setId(id);
+        Team updatedTeam = teamService.save(team);
+
+        // 🔹 Étape 3 : Récupérer la carte associée à l'équipe
+        GameMap gameMap = updatedTeam.getGameMap();
+
+        // 🔹 Étape 4 : Construire le message WebSocket
+        WebSocketMessage teamUpdatedMessage = new WebSocketMessage(
+                "TEAM_UPDATED",
+                Map.of(
+                        "teamId", updatedTeam.getId(),
+                        "teamName", updatedTeam.getName(),
+                        "mapId", gameMap.getId()
+                ),
+                authentication.getName(), // Nom de l’utilisateur authentifié
+                System.currentTimeMillis()
+        );
+
+        // 🔹 Étape 5 : Diffuser le message à tous les clients connectés à cette carte
+        messagingTemplate.convertAndSend("/topic/field/" + gameMap.getField().getId(), teamUpdatedMessage);
+
+        // 🔹 Étape 6 : Retourner l’équipe mise à jour dans la réponse
+        return ResponseEntity.ok(updatedTeam);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTeam(@PathVariable Long id) {
-        return teamService.findById(id)
-                .map(team -> {
-                    teamService.deleteById(id);
-                    return ResponseEntity.ok().<Void>build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Void> deleteTeam(@PathVariable Long id, Authentication authentication) {
+        Team team = teamService.findById(id).orElse(null);
+        if (team == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Supprimer les joueurs connectés de l'équipe
+        GameMap gameMap = team.getGameMap();
+        Field field = gameMap.getField();
+        List<ConnectedPlayer> connectedPlayers = connectedPlayerService.getConnectedPlayersByFieldId(field.getId());
+        for (ConnectedPlayer player : connectedPlayers) {
+            if (player.getTeam() != null && player.getTeam().getId().equals(id)) {
+                player.setTeam(null);
+                connectedPlayerService.save(player);
+            }
+        }
+        teamService.deleteById(id);
+
+        WebSocketMessage teamDeletedMessage = new WebSocketMessage(
+                "TEAM_DELETED",
+                Map.of(
+                        "teamId", id,
+                        "mapId", gameMap.getId()
+                ),
+                authentication.getName(),
+                System.currentTimeMillis()
+        );
+
+        messagingTemplate.convertAndSend("/topic/field/" + gameMap.getField().getId(), teamDeletedMessage);
+
+        return ResponseEntity.ok().<Void>build();
     }
     
     @GetMapping("/leader/{leaderId}")
@@ -176,7 +241,7 @@ public class TeamController {
                 System.currentTimeMillis()
         );
 
-        messagingTemplate.convertAndSend("/topic/map/" + mapId, teamUpdateMessage);
+        messagingTemplate.convertAndSend("/topic/field/" + optionalMap.get().getField().getId(), teamUpdateMessage);
 
         return ResponseEntity.ok(player);
     }
