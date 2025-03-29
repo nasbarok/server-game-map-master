@@ -4,6 +4,7 @@ import com.airsoft.gamemapmaster.model.*;
 import com.airsoft.gamemapmaster.repository.FieldUserHistoryRepository;
 import com.airsoft.gamemapmaster.service.ConnectedPlayerService;
 import com.airsoft.gamemapmaster.service.FieldService;
+import com.airsoft.gamemapmaster.service.GameSessionService;
 import com.airsoft.gamemapmaster.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,8 @@ public class FieldController {
 
     @Autowired
     private FieldUserHistoryRepository historyRepository;
+    @Autowired
+    private GameSessionService gameSessionService;
 
     @GetMapping
     public ResponseEntity<List<Field>> getAllFields() {
@@ -62,6 +65,7 @@ public class FieldController {
         Field saved = fieldService.save(field);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
+
     @PutMapping("/{id}")
     public ResponseEntity<Field> updateField(@PathVariable Long id, @RequestBody Field field) {
         return fieldService.findById(id)
@@ -81,7 +85,7 @@ public class FieldController {
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
-    
+
     @GetMapping("/owner/{ownerId}")
     public ResponseEntity<List<Field>> getFieldsByOwnerId(@PathVariable Long ownerId) {
         return ResponseEntity.ok(fieldService.findByOwnerId(ownerId));
@@ -144,6 +148,8 @@ public class FieldController {
             return ResponseEntity.ok(field);
         }
 
+        connectedPlayerService.disconnectAllPlayersFromField(fieldId);
+
         field.setClosedAt(LocalDateTime.now());
         field.setActive(false);
 
@@ -198,7 +204,7 @@ public class FieldController {
 
         // 2️⃣ Sinon, vérifier s'il est un joueur actuellement dans une session ouverte
         Optional<FieldUserHistory> activeSession =
-                historyRepository.findByUserIdAndSessionClosedFalse(user.getId());
+                historyRepository.findTopByUserIdAndSessionClosedFalseOrderByFieldIdDesc(user.getId());
 
         if (activeSession.isPresent()) {
             Field activeField = activeSession.get().getField();

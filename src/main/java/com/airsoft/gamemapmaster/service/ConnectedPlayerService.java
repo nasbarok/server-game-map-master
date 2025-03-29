@@ -77,4 +77,10 @@ public interface ConnectedPlayerService {
     boolean isPlayerConnectedToField(Long fieldId, Long fromUserId);
 
     public ConnectedPlayer connectPlayerToField(Long fieldId, Long fromUserId, Long teamId);
+
+    List<ConnectedPlayer> getConnectedPlayersByFieldId(Long fieldId);
+
+    boolean disconnectPlayerFromField(Long fieldId, Long id);
+
+    int disconnectAllPlayersFromField(Long fieldId);
 }

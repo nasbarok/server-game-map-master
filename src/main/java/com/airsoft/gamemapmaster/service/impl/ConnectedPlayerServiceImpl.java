@@ -177,4 +177,34 @@ public class ConnectedPlayerServiceImpl implements ConnectedPlayerService {
         return connectedPlayerRepository.save(connectedPlayer);
     }
 
+    @Override
+    public List<ConnectedPlayer> getConnectedPlayersByFieldId(Long fieldId) {
+        return connectedPlayerRepository.findByFieldIdAndActiveTrue(fieldId);
+    }
+
+    @Override
+    public boolean disconnectPlayerFromField(Long fieldId, Long userId) {
+        Optional<ConnectedPlayer> connectedPlayer = connectedPlayerRepository.findByUserIdAndFieldIdAndActiveTrue(userId, fieldId);
+
+        if (connectedPlayer.isPresent()) {
+            ConnectedPlayer player = connectedPlayer.get();
+            player.setActive(false);
+            connectedPlayerRepository.save(player);
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public int disconnectAllPlayersFromField(Long fieldId) {
+        List<ConnectedPlayer> connectedPlayers = connectedPlayerRepository.findByFieldIdAndActiveTrue(fieldId);
+
+        for (ConnectedPlayer player : connectedPlayers) {
+            player.setActive(false);
+            connectedPlayerRepository.save(player);
+        }
+        return connectedPlayers.size();
+    }
+
 }

@@ -4,10 +4,7 @@ import com.airsoft.gamemapmaster.model.ConnectedPlayer;
 import com.airsoft.gamemapmaster.model.GameMap;
 import com.airsoft.gamemapmaster.model.Team;
 import com.airsoft.gamemapmaster.model.User;
-import com.airsoft.gamemapmaster.service.ConnectedPlayerService;
-import com.airsoft.gamemapmaster.service.GameMapService;
-import com.airsoft.gamemapmaster.service.TeamService;
-import com.airsoft.gamemapmaster.service.UserService;
+import com.airsoft.gamemapmaster.service.*;
 import com.airsoft.gamemapmaster.websocket.WebSocketMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +21,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/maps")
+@RequestMapping("/api/fields")
 public class PlayerConnectionController {
     private static final Logger logger = LoggerFactory.getLogger(PlayerConnectionController.class);
 
@@ -39,13 +36,16 @@ public class PlayerConnectionController {
 
     @Autowired
     private TeamService teamService;
+
+    @Autowired
+    private FieldService fieldService;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
     /**
      * Endpoint pour qu'un joueur rejoigne une carte
      */
-    @PostMapping("/{mapId}/join")
-    public ResponseEntity<?> joinMap(@PathVariable("mapId") Long mapId,
+    @PostMapping("/{fieldId}/join")
+    public ResponseEntity<?> joinMap(@PathVariable("fieldId") Long fieldId,
                                      @RequestParam(value = "teamId", required = false) Long teamId,
                                      Authentication authentication) {
         String username = authentication.getName();
@@ -56,16 +56,16 @@ public class PlayerConnectionController {
         }
 
         // Vérifier si la carte existe
-        if (gameMapService.findById(mapId).isEmpty()) {
+        if (fieldService.findById(fieldId).isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Carte non trouvée");
         }
 
         // Vérifier si le joueur est déjà connecté à cette carte
-        if (connectedPlayerService.isPlayerConnectedToMap(mapId, user.get().getId())) {
+        if (connectedPlayerService.isPlayerConnectedToField(fieldId, user.get().getId())) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Vous êtes déjà connecté à cette carte");
         }
 
-        ConnectedPlayer connectedPlayer = connectedPlayerService.connectPlayerToMap(mapId, user.get().getId(), teamId);
+        ConnectedPlayer connectedPlayer = connectedPlayerService.connectPlayerToField(fieldId, user.get().getId(), teamId);
 
         if (connectedPlayer == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Impossible de rejoindre la carte");
@@ -75,10 +75,10 @@ public class PlayerConnectionController {
     }
 
     /**
-     * Endpoint pour qu'un joueur quitte une carte
+     * Endpoint pour qu'un joueur quitte un terrain
      */
-    @PostMapping("/{mapId}/leave")
-    public ResponseEntity<?> leaveMap(@PathVariable("mapId") Long mapId, Authentication authentication) {
+    @PostMapping("/{fieldId}/leave")
+    public ResponseEntity<?> leaveMap(@PathVariable("fieldId") Long fieldId, Authentication authentication) {
         String username = authentication.getName();
         Optional<User> user = userService.findByUsername(username);
 
@@ -86,7 +86,7 @@ public class PlayerConnectionController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
         }
 
-        boolean disconnected = connectedPlayerService.disconnectPlayerFromMap(mapId, user.get().getId());
+        boolean disconnected = connectedPlayerService.disconnectPlayerFromField(fieldId, user.get().getId());
 
         if (!disconnected) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Vous n'êtes pas connecté à cette carte");
@@ -98,46 +98,16 @@ public class PlayerConnectionController {
     /**
      * Endpoint pour lister tous les joueurs connectés à une carte
      */
-    @GetMapping("/{mapId}/players")
-    public ResponseEntity<?> getConnectedPlayers(@PathVariable("mapId") Long mapId) {
+    @GetMapping("/{fieldId}/players")
+    public ResponseEntity<?> getConnectedPlayers(@PathVariable("fieldId") Long fieldId) {
         // Vérifier si la carte existe
-        if (gameMapService.findById(mapId).isEmpty()) {
+        if (fieldService.findById(fieldId).isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Carte non trouvée");
         }
 
-        List<ConnectedPlayer> connectedPlayers = connectedPlayerService.getConnectedPlayersByMapId(mapId);
+        List<ConnectedPlayer> connectedPlayers = connectedPlayerService.getConnectedPlayersByFieldId(fieldId);
 
         return ResponseEntity.ok(connectedPlayers);
-    }
-
-    /**
-     * Endpoint pour déconnecter tous les joueurs d'une carte (réservé au propriétaire de la carte)
-     */
-    @PostMapping("/{mapId}/close")
-    public ResponseEntity<?> closeMap(@PathVariable("mapId") Long mapId, Authentication authentication) {
-        String username = authentication.getName();
-        Optional<User> user = userService.findByUsername(username);
-
-        if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
-        }
-
-        // Vérifier si l'utilisateur est le propriétaire de la carte
-        return gameMapService.findById(mapId)
-                .map(gameMap -> {
-                    if (!gameMap.getOwner().getId().equals(user.get().getId())) {
-                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                                .body("Vous n'êtes pas autorisé à fermer cette carte");
-                    }
-
-                    int disconnectedCount = connectedPlayerService.disconnectAllPlayersFromMap(mapId);
-
-                    return ResponseEntity.ok(Map.of(
-                            "message", "Carte fermée avec succès",
-                            "disconnectedPlayers", disconnectedCount
-                    ));
-                })
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Carte non trouvée"));
     }
 
     /**
@@ -169,12 +139,6 @@ public class PlayerConnectionController {
         }
 
         GameMap gameMap = optionalMap.get();
-
-        // 🔒 Vérification que l'utilisateur est le propriétaire
-        if (!gameMap.getOwner().getId().equals(ownerId)) {
-            logger.warn("❌ Accès refusé : utilisateur {} (ID: {}) n'est pas le propriétaire de la carte {}", username, ownerId, mapId);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Vous n'êtes pas autorisé à gérer cette carte");
-        }
 
         // 🔍 Vérification que le joueur est bien connecté à cette carte
         Optional<ConnectedPlayer> connectedPlayerOpt =

@@ -18,5 +18,5 @@ public interface FieldUserHistoryRepository extends JpaRepository<FieldUserHisto
 
     List<FieldUserHistory> findByUserId(Long userId);
 
-    Optional<FieldUserHistory> findByUserIdAndSessionClosedFalse(Long id);
+    Optional<FieldUserHistory> findTopByUserIdAndSessionClosedFalseOrderByFieldIdDesc(Long id);
 }

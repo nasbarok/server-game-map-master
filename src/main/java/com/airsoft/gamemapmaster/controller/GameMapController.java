@@ -132,7 +132,7 @@ public class GameMapController {
     public ResponseEntity<?> getMapByFieldId(@RequestParam("fieldId") Long fieldId) {
         Optional<GameMap> optionalMap = gameMapService.findFirstByFieldId(fieldId);
         if (optionalMap.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Aucune carte trouvée pour ce terrain");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("no_map_found");
         }
         return ResponseEntity.ok(optionalMap.get());
     }

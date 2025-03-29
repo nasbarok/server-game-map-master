@@ -31,4 +31,6 @@ public interface ConnectedPlayerRepository extends JpaRepository<ConnectedPlayer
     boolean existsByUserIdAndFieldIdAndActiveTrue(Long fromUserId, Long fieldId);
 
     Optional<ConnectedPlayer> findByUserIdAndFieldIdAndActiveTrue(Long fromUserId, Long fieldId);
+
+    List<ConnectedPlayer> findByFieldIdAndActiveTrue(Long fieldId);
 }

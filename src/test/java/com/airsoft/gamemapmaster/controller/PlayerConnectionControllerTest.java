@@ -121,30 +121,4 @@ public class PlayerConnectionControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(players, response.getBody());
     }
-
-    @Test
-    public void testCloseMap_Success() {
-        when(gameMapService.findById(1L)).thenReturn(Optional.of(testMap));
-        when(connectedPlayerService.disconnectAllPlayersFromMap(1L)).thenReturn(5);
-
-        ResponseEntity<?> response = controller.closeMap(1L, authentication);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-    }
-
-    @Test
-    public void testCloseMap_NotOwner() {
-        User otherUser = new User();
-        otherUser.setId(2L);
-        
-        GameMap map = new GameMap();
-        map.setId(1L);
-        map.setOwner(otherUser);
-
-        when(gameMapService.findById(1L)).thenReturn(Optional.of(map));
-
-        ResponseEntity<?> response = controller.closeMap(1L, authentication);
-
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-    }
 }

@@ -392,3 +392,61 @@ databaseChangeLog:
             constraintName: fk_teams_game_map
             referencedTableName: game_maps
             referencedColumnNames: id
+  - changeSet:
+      id: 08b
+      author: developer
+      changes:
+        - addColumn:
+            tableName: connected_players
+            columns:
+              - column:
+                  name: field_id
+                  type: bigint
+                  constraints:
+                    nullable: true
+        - addForeignKeyConstraint:
+            baseTableName: connected_players
+            baseColumnNames: field_id
+            constraintName: fk_connected_player_field
+            referencedTableName: fields
+            referencedColumnNames: id
+  - changeSet:
+      id: 20250328-01-create-game-sessions
+      author: nasbarok
+      changes:
+        - createTable:
+            tableName: game_sessions
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: field_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: start_time
+                  type: TIMESTAMP
+              - column:
+                  name: end_time
+                  type: TIMESTAMP
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+        - addForeignKeyConstraint:
+            baseTableName: game_sessions
+            baseColumnNames: field_id
+            referencedTableName: fields
+            referencedColumnNames: id
+            constraintName: fk_game_session_field
+            onDelete: CASCADE

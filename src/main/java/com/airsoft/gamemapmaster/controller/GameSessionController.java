@@ -1,11 +1,7 @@
 package com.airsoft.gamemapmaster.controller;
 
-import com.airsoft.gamemapmaster.model.GameMap;
-import com.airsoft.gamemapmaster.model.Scenario;
-import com.airsoft.gamemapmaster.model.User;
-import com.airsoft.gamemapmaster.service.GameMapService;
-import com.airsoft.gamemapmaster.service.ScenarioService;
-import com.airsoft.gamemapmaster.service.UserService;
+import com.airsoft.gamemapmaster.model.*;
+import com.airsoft.gamemapmaster.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -29,6 +26,12 @@ public class GameSessionController {
     
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private FieldService fieldService;
+
+    @Autowired
+    private GameSessionService gameSessionService;
     
     /**
      * Démarre une partie sur une carte
@@ -107,5 +110,35 @@ public class GameSessionController {
                 "message", "Partie terminée avec succès",
                 "gameMap", gameMap
         ));
+    }
+
+    @GetMapping("/{fieldId}/status")
+    public ResponseEntity<?> getFieldStatus(@PathVariable("fieldId") Long fieldId) {
+        Optional<Field> fieldOpt = fieldService.findById(fieldId);
+        if (fieldOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Terrain non trouvé");
+        }
+
+        Field field = fieldOpt.get();
+
+        // Récupérer la session de jeu active pour ce terrain
+        Optional<GameSession> activeSession = gameSessionService.findActiveSessionByFieldId(fieldId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("fieldId", fieldId);
+        response.put("fieldName", field.getName());
+
+        if (activeSession.isPresent()) {
+            GameSession session = activeSession.get();
+            response.put("status", session.getStatus());
+            response.put("active", session.isActive());
+            response.put("startTime", session.getStartTime());
+            response.put("endTime", session.getEndTime());
+        } else {
+            response.put("status", "INACTIVE");
+            response.put("active", false);
+        }
+
+        return ResponseEntity.ok(response);
     }
 }
