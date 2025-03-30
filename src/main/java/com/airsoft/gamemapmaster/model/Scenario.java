@@ -44,7 +44,4 @@ public class Scenario {
     
     @Column(nullable = false)
     private boolean active = false;
-    
-    @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Invitation> invitations = new HashSet<>();
 }

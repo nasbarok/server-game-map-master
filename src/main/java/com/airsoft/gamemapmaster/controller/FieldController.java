@@ -2,10 +2,7 @@ package com.airsoft.gamemapmaster.controller;
 
 import com.airsoft.gamemapmaster.model.*;
 import com.airsoft.gamemapmaster.repository.FieldUserHistoryRepository;
-import com.airsoft.gamemapmaster.service.ConnectedPlayerService;
-import com.airsoft.gamemapmaster.service.FieldService;
-import com.airsoft.gamemapmaster.service.GameSessionService;
-import com.airsoft.gamemapmaster.service.UserService;
+import com.airsoft.gamemapmaster.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +36,7 @@ public class FieldController {
     @Autowired
     private FieldUserHistoryRepository historyRepository;
     @Autowired
-    private GameSessionService gameSessionService;
+    private GameMapService gameMapService;
 
     @GetMapping
     public ResponseEntity<List<Field>> getAllFields() {
@@ -149,6 +146,12 @@ public class FieldController {
         }
 
         connectedPlayerService.disconnectAllPlayersFromField(fieldId);
+
+        List<GameMap> gameMap = gameMapService.findByFieldId(fieldId);
+        for (GameMap map : gameMap) {
+            map.setField(null);
+            gameMapService.save(map);
+        }
 
         field.setClosedAt(LocalDateTime.now());
         field.setActive(false);

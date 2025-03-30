@@ -17,6 +17,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -111,22 +112,25 @@ public class WebSocketController {
         if (accepted) {
             boolean alreadyConnected = connectedPlayerService.isPlayerConnectedToField(fieldId, fromUserId);
             if (!alreadyConnected) {
-                logger.info("📡 Connexion du joueur {} à la carte {}", fromUserId, mapId);
+                logger.info("📡 Connexion du joueur {} au terrain {}", fromUserId, fieldId);
                 ConnectedPlayer connectedPlayer = connectedPlayerService.connectPlayerToField(fieldId, fromUserId, null); // Pas d'équipe au départ
                 // 🔹 Ajout dans l'historique de connexion
                 fieldUserHistoryService.logJoin(fromUserId,fieldId);
+                Map<String, Object> playerData = new HashMap<>();
+                playerData.put("id", connectedPlayer.getUser().getId());
+                playerData.put("username", connectedPlayer.getUser().getUsername());
+                if (connectedPlayer.getTeam() != null) {
+                    playerData.put("teamId", connectedPlayer.getTeam().getId());
+                    playerData.put("teamName", connectedPlayer.getTeam().getName());
+                }
+
+                Map<String, Object> messagePayload = new HashMap<>();
+                messagePayload.put("player", playerData);
+                messagePayload.put("fieldId", fieldId);
 
                 WebSocketMessage playerConnectedMessage = new WebSocketMessage(
                         "PLAYER_CONNECTED",
-                        Map.of(
-                                "player", Map.of(
-                                        "id", connectedPlayer.getUser().getId(),
-                                        "username", connectedPlayer.getUser().getUsername(),
-                                        "teamId", connectedPlayer.getTeam() != null ? connectedPlayer.getTeam().getId() : null,
-                                        "teamName", connectedPlayer.getTeam() != null ? connectedPlayer.getTeam().getName() : null
-                                ),
-                                "fieldId", fieldId
-                        ),
+                        messagePayload,
                         fromUserId.toString(),
                         System.currentTimeMillis()
                 );

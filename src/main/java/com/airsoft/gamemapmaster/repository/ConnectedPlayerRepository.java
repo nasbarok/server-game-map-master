@@ -33,4 +33,10 @@ public interface ConnectedPlayerRepository extends JpaRepository<ConnectedPlayer
     Optional<ConnectedPlayer> findByUserIdAndFieldIdAndActiveTrue(Long fromUserId, Long fieldId);
 
     List<ConnectedPlayer> findByFieldIdAndActiveTrue(Long fieldId);
+
+    void deleteByFieldIdAndUserId(Long fieldId, Long fromUserId);
+
+    Optional<ConnectedPlayer> findByUserIdAndFieldId(Long fromUserId, Long fieldId);
+
+    Optional<ConnectedPlayer> findByUserId(Long fromUserId);
 }

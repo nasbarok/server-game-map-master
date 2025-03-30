@@ -457,3 +457,88 @@ databaseChangeLog:
         - dropUniqueConstraint:
             tableName: connected_players
             constraintName: uk_connected_player_user_map
+  - changeSet:
+      id: simplify-invitation-structure
+      author: developer
+      preConditions:
+        - onFail: MARK_RAN
+        - foreignKeyConstraintExists:
+            foreignKeyName: FK49y8dd0p9qec61rjy4841gkbf
+            tableName: invitations
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: invitations
+            constraintName: FK49y8dd0p9qec61rjy4841gkbf
+
+        - dropColumn:
+            tableName: invitations
+            columnName: scenario_id
+
+        - dropColumn:
+            tableName: invitations
+            columnName: team_id
+
+        - addColumn:
+            tableName: invitations
+            columns:
+              - column:
+                  name: field_id
+                  type: BIGINT
+
+        - addForeignKeyConstraint:
+            baseTableName: invitations
+            baseColumnNames: field_id
+            referencedTableName: fields
+            referencedColumnNames: id
+            constraintName: fk_invitation_field
+  - changeSet:
+      id: 20250329-01-drop-unique-user-map
+      author: developer
+      preConditions:
+        - onFail: MARK_RAN
+        - indexExists:
+            tableName: connected_players
+            indexName: uk_connected_player_user_map
+      changes:
+        - dropUniqueConstraint:
+            tableName: connected_players
+            constraintName: uk_connected_player_user_map
+  - changeSet:
+      id: 20250329-02-drop-unique-user-map
+      author: developer
+      preConditions:
+        - onFail: MARK_RAN
+        - indexExists:
+            tableName: connected_players
+            indexName: UKwhtaxs0b5kgn5o9u3dnianqw
+        - dropForeignKeyConstraint:
+            baseTableName: connected_players
+            constraintName: UKwhtaxs0b5kgn5o9u3dnianqw
+  - changeSet:
+      id: 20250329-03-fix-uk-connected-player-user-map
+      author: developer
+      preConditions:
+        - onFail: MARK_RAN
+        - foreignKeyConstraintExists:
+            tableName: connected_players
+            foreignKeyName: fk_connected_player_user
+        - indexExists:
+            tableName: connected_players
+            indexName: UKwhtaxs0b5kgn5o9u3dnianqw
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: connected_players
+            constraintName: fk_connected_player_user
+        - dropUniqueConstraint:
+            tableName: connected_players
+            constraintName: uk_connected_player_user_map
+        - dropIndex:
+            tableName: connected_players
+            indexName: UKwhtaxs0b5kgn5o9u3dnianqw
+        - addForeignKeyConstraint:
+            baseTableName: connected_players
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_connected_player_user
+

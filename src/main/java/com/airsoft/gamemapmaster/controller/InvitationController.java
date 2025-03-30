@@ -1,8 +1,10 @@
 package com.airsoft.gamemapmaster.controller;
 
+import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.Invitation;
 import com.airsoft.gamemapmaster.model.User;
 import com.airsoft.gamemapmaster.security.jwt.JwtAuthenticationFilter;
+import com.airsoft.gamemapmaster.service.FieldService;
 import com.airsoft.gamemapmaster.service.InvitationService;
 import com.airsoft.gamemapmaster.service.ScenarioService;
 import com.airsoft.gamemapmaster.service.UserService;
@@ -31,14 +33,16 @@ public class InvitationController {
     
     @Autowired
     private ScenarioService scenarioService;
+
+    @Autowired
+    private FieldService fieldService;
     
     /**
      * Crée une invitation pour un utilisateur à rejoindre un scénario
      */
     @PostMapping
-    public ResponseEntity<?> createInvitation(@RequestParam("scenarioId") Long scenarioId,
+    public ResponseEntity<?> createInvitation(@RequestParam("fieldId") Long fieldId,
                                              @RequestParam("userId") Long userId,
-                                             @RequestParam(value = "teamId", required = false) Long teamId,
                                              Authentication authentication) {
         String username = authentication.getName();
         Optional<User> currentUser = userService.findByUsername(username);
@@ -46,25 +50,15 @@ public class InvitationController {
         if (currentUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
         }
-        
-        // Vérifier si l'utilisateur est le créateur du scénario
-        return scenarioService.findById(scenarioId)
-                .map(scenario -> {
-                    if (!scenario.getGameMap().getCreator().getId().equals(currentUser.get().getId())) {
-                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                                .body("Vous n'êtes pas autorisé à créer des invitations pour ce scénario");
-                    }
-                    
-                    Invitation invitation = invitationService.createInvitation(scenarioId, userId, teamId);
-                    
-                    if (invitation == null) {
-                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                .body("Impossible de créer l'invitation");
-                    }
-                    
-                    return ResponseEntity.status(HttpStatus.CREATED).body(invitation);
-                })
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Scénario non trouvé"));
+
+        Field field = fieldService.findById(fieldId).orElse(null);
+
+        if(field == null){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Terrain non trouvé");
+        }
+        Invitation invitation = invitationService.createInvitation(fieldId, userId);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(invitation);
     }
     
     /**
@@ -99,34 +93,6 @@ public class InvitationController {
         List<Invitation> invitations = invitationService.getPendingInvitationsForUser(user.get().getId());
         
         return ResponseEntity.ok(invitations);
-    }
-    
-    /**
-     * Récupère toutes les invitations pour un scénario
-     */
-    @GetMapping("/scenario/{scenarioId}")
-    public ResponseEntity<?> getInvitationsForScenario(@PathVariable("scenarioId") Long scenarioId,
-                                                     Authentication authentication) {
-        String username = authentication.getName();
-        Optional<User> user = userService.findByUsername(username);
-        
-        if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
-        }
-        
-        // Vérifier si l'utilisateur est le créateur du scénario
-        return scenarioService.findById(scenarioId)
-                .map(scenario -> {
-                    if (!scenario.getGameMap().getCreator().getId().equals(user.get().getId())) {
-                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                                .body("Vous n'êtes pas autorisé à voir les invitations pour ce scénario");
-                    }
-                    
-                    List<Invitation> invitations = invitationService.getInvitationsForScenario(scenarioId);
-                    
-                    return ResponseEntity.ok(invitations);
-                })
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Scénario non trouvé"));
     }
     
     /**

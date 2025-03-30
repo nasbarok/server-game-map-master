@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "connected_players", 
-       uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "game_map_id"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"user_id"}))
 public class ConnectedPlayer {
     
     @Id

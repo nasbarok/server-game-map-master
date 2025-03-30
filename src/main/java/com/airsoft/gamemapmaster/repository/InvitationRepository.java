@@ -14,11 +14,4 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
     
     List<Invitation> findByUserIdAndStatus(Long userId, String status);
     
-    List<Invitation> findByScenarioId(Long scenarioId);
-    
-    List<Invitation> findByScenarioIdAndStatus(Long scenarioId, String status);
-    
-    List<Invitation> findByTeamId(Long teamId);
-    
-    Optional<Invitation> findByScenarioIdAndUserIdAndStatus(Long scenarioId, Long userId, String status);
 }

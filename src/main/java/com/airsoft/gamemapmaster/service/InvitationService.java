@@ -12,12 +12,10 @@ public interface InvitationService {
     
     /**
      * Crée une invitation pour un utilisateur à rejoindre un scénario
-     * @param scenarioId ID du scénario
      * @param userId ID de l'utilisateur
-     * @param teamId ID de l'équipe (optionnel)
      * @return L'invitation créée
      */
-    Invitation createInvitation(Long scenarioId, Long userId, Long teamId);
+    Invitation createInvitation(Long fieldId, Long userId);
     
     /**
      * Récupère toutes les invitations pour un utilisateur
@@ -32,13 +30,7 @@ public interface InvitationService {
      * @return Liste des invitations en attente
      */
     List<Invitation> getPendingInvitationsForUser(Long userId);
-    
-    /**
-     * Récupère toutes les invitations pour un scénario
-     * @param scenarioId ID du scénario
-     * @return Liste des invitations
-     */
-    List<Invitation> getInvitationsForScenario(Long scenarioId);
+
     
     /**
      * Accepte une invitation

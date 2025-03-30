@@ -13,30 +13,26 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "invitations")
 public class Invitation {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @ManyToOne
-    @JoinColumn(name = "scenario_id")
-    private Scenario scenario;
-    
+    @JoinColumn(name = "field_id", nullable = false)
+    private Field field;
+
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
-    
-    @ManyToOne
-    @JoinColumn(name = "team_id")
-    private Team team;
-    
+
     @Column(nullable = false)
     private String status; // "PENDING", "ACCEPTED", "DECLINED"
-    
+
     private LocalDateTime createdAt;
-    
+
     private LocalDateTime respondedAt;
-    
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

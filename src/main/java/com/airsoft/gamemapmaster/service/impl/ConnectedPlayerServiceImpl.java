@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityManager;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,6 +32,9 @@ public class ConnectedPlayerServiceImpl implements ConnectedPlayerService {
     private TeamRepository teamRepository;
     @Autowired
     private FieldRepository fieldRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Override
     @Transactional
@@ -146,36 +151,43 @@ public class ConnectedPlayerServiceImpl implements ConnectedPlayerService {
     }
 
     @Override
+    @Transactional
     public ConnectedPlayer connectPlayerToField(Long fieldId, Long fromUserId, Long teamId) {
-        // Vérifier si le joueur est déjà connecté à cette carte
-        if (connectedPlayerRepository.existsByUserIdAndFieldIdAndActiveTrue(fromUserId, fieldId)) {
-            Optional<ConnectedPlayer> existingPlayer = connectedPlayerRepository.findByUserIdAndFieldIdAndActiveTrue(fromUserId, fieldId);
-            return existingPlayer.orElse(null);
+        // 1. Vérifie si déjà connecté à ce field
+        Optional<ConnectedPlayer> existingPlayer =
+                connectedPlayerRepository.findByUserId(fromUserId);
+        Field field = fieldRepository.findById(fieldId).orElseThrow();
+        GameMap gameMap = gameMapRepository.findFirstByFieldId(fieldId).orElseThrow();
+        if (existingPlayer.isPresent()) {
+            ConnectedPlayer cp = existingPlayer.get();
+            cp.setField(field);
+            cp.setGameMap(gameMap);
+            cp.setJoinedAt(LocalDateTime.now());
+            if (!cp.isActive()) {
+                cp.setActive(true);
+                return connectedPlayerRepository.save(cp);
+            }
+            return connectedPlayerRepository.save(cp);
         }
 
-        // Récupérer les entités nécessaires
-        Optional<Field> field = fieldRepository.findById(fieldId);
-        Optional<User> user = userRepository.findById(fromUserId);
-        Optional<GameMap> gameMap = gameMapRepository.findFirstByFieldId(fieldId);
+        // 2. Récupération des entités
 
-        if (field.isEmpty() || user.isEmpty()) {
-            return null;
-        }
+        User user = userRepository.findById(fromUserId).orElseThrow();
 
-        // Créer un nouveau joueur connecté
-        ConnectedPlayer connectedPlayer = new ConnectedPlayer();
-        connectedPlayer.setField(field.get());
-        connectedPlayer.setUser(user.get());
-        connectedPlayer.setGameMap(gameMap.get());
+        // 3. Créer nouveau joueur connecté
+        ConnectedPlayer cp = new ConnectedPlayer();
+        cp.setUser(user);
+        cp.setField(field);
+        cp.setGameMap(gameMap);
+        cp.setActive(true);
 
-        // Assigner à une équipe si spécifiée
         if (teamId != null) {
-            Optional<Team> team = teamRepository.findById(teamId);
-            team.ifPresent(connectedPlayer::setTeam);
+            teamRepository.findById(teamId).ifPresent(cp::setTeam);
         }
 
-        return connectedPlayerRepository.save(connectedPlayer);
+        return connectedPlayerRepository.save(cp);
     }
+
 
     @Override
     public List<ConnectedPlayer> getConnectedPlayersByFieldId(Long fieldId) {
@@ -184,11 +196,15 @@ public class ConnectedPlayerServiceImpl implements ConnectedPlayerService {
 
     @Override
     public boolean disconnectPlayerFromField(Long fieldId, Long userId) {
-        Optional<ConnectedPlayer> connectedPlayer = connectedPlayerRepository.findByUserIdAndFieldIdAndActiveTrue(userId, fieldId);
+        Optional<ConnectedPlayer> connectedPlayer = connectedPlayerRepository.findByUserId(userId);
 
         if (connectedPlayer.isPresent()) {
             ConnectedPlayer player = connectedPlayer.get();
             player.setActive(false);
+            player.setField(null);
+            player.setJoinedAt(null);
+            player.setTeam(null);
+            player.setGameMap(null);
             connectedPlayerRepository.save(player);
             return true;
         }
