@@ -14,10 +14,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -228,15 +225,16 @@ public class TeamController {
         player.setTeam(null);
         connectedPlayerService.save(player);
 
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("mapId", mapId);
+        payload.put("userId", userId);
+        payload.put("teamId", null); // Ceci est accepté avec HashMap
+        payload.put("action", "REMOVE_FROM_TEAM");
+
         // Notification WebSocket
         WebSocketMessage teamUpdateMessage = new WebSocketMessage(
                 "TEAM_UPDATE",
-                Map.of(
-                        "mapId", mapId,
-                        "userId", userId,
-                        "teamId", null,
-                        "action", "REMOVE_FROM_TEAM"
-                ),
+                payload,
                 username,
                 System.currentTimeMillis()
         );

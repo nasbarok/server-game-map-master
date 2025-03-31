@@ -3,11 +3,14 @@ package com.airsoft.gamemapmaster.controller;
 import com.airsoft.gamemapmaster.model.*;
 import com.airsoft.gamemapmaster.repository.FieldUserHistoryRepository;
 import com.airsoft.gamemapmaster.service.*;
+import com.airsoft.gamemapmaster.websocket.WebSocketMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -37,6 +40,12 @@ public class FieldController {
     private FieldUserHistoryRepository historyRepository;
     @Autowired
     private GameMapService gameMapService;
+
+    @Autowired
+    private FieldUserHistoryService fieldUserHistoryService;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     @GetMapping
     public ResponseEntity<List<Field>> getAllFields() {
@@ -124,6 +133,22 @@ public class FieldController {
         field.setActive(true);
 
         Field updated = fieldService.save(field);
+
+        // Envoyer une notification WebSocket pour informer tous les clients
+        WebSocketMessage openMessage = new WebSocketMessage(
+                "FIELD_OPENED",
+                Map.of(
+                        "fieldId", fieldId,
+                        "ownerId", userOpt.get().getId(),
+                        "ownerUsername", username,
+                        "openedAt", field.getOpenedAt().toString()
+                ),
+                username,
+                System.currentTimeMillis()
+        );
+
+        messagingTemplate.convertAndSend("/topic/field/" + fieldId, openMessage);
+
         return ResponseEntity.ok(updated);
     }
 
@@ -145,6 +170,21 @@ public class FieldController {
             return ResponseEntity.ok(field);
         }
 
+        // Envoyer une notification WebSocket AVANT de déconnecter les joueurs
+        WebSocketMessage closeMessage = new WebSocketMessage(
+                "FIELD_CLOSED",
+                Map.of(
+                        "fieldId", fieldId,
+                        "ownerId", userOpt.get().getId(),
+                        "ownerUsername", username,
+                        "closedAt", LocalDateTime.now().toString()
+                ),
+                username,
+                System.currentTimeMillis()
+        );
+
+        messagingTemplate.convertAndSend("/topic/field/" + fieldId, closeMessage);
+
         connectedPlayerService.disconnectAllPlayersFromField(fieldId);
 
         List<GameMap> gameMap = gameMapService.findByFieldId(fieldId);
@@ -157,6 +197,7 @@ public class FieldController {
         field.setActive(false);
 
         Field updated = fieldService.save(field);
+
         return ResponseEntity.ok(updated);
     }
 
@@ -225,5 +266,22 @@ public class FieldController {
         return ResponseEntity.ok(Map.of("active", false));
     }
 
+
+    @GetMapping("/history")
+    public ResponseEntity<?> getFieldHistory(Authentication authentication) {
+        String username = authentication.getName();
+        Optional<User> userOpt = userService.findByUsername(username);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
+        }
+
+        User user = userOpt.get();
+
+        // Récupérer l'historique des terrains visités par l'utilisateur
+        List<Field> fields = fieldUserHistoryService.getFieldsVisitedByUser(user.getId());
+
+        return ResponseEntity.ok(fields);
+    }
 
 }

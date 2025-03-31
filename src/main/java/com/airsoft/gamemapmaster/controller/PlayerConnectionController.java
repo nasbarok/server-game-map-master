@@ -203,4 +203,56 @@ public class PlayerConnectionController {
         return ResponseEntity.ok(updatedPlayer);
     }
 
+    // Dans PlayerConnectionController.java
+    @PostMapping("/{mapId}/players/{userId}/kick")
+    public ResponseEntity<?> kickPlayer(@PathVariable("mapId") Long mapId,
+                                        @PathVariable("userId") Long userId,
+                                        Authentication authentication) {
+        String username = authentication.getName();
+        Optional<User> currentUser = userService.findByUsername(username);
+
+        if (currentUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
+        }
+
+        // Vérifier si l'utilisateur actuel est l'hôte de la carte
+        Optional<GameMap> gameMapOpt = gameMapService.findById(mapId);
+        if (gameMapOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Carte non trouvée");
+        }
+
+        GameMap gameMap = gameMapOpt.get();
+        if (!gameMap.getOwner().getId().equals(currentUser.get().getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Seul l'hôte peut déconnecter des joueurs");
+        }
+
+        // Récupérer le joueur connecté
+        Optional<ConnectedPlayer> connectedPlayerOpt = connectedPlayerService.getConnectedPlayerByUserAndMap(userId, mapId);
+        if (connectedPlayerOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Joueur non connecté à cette carte");
+        }
+
+        ConnectedPlayer player = connectedPlayerOpt.get();
+
+        // Déconnecter le joueur
+        connectedPlayerService.disconnectPlayerFromField(gameMap.getField().getId(),player.getId());
+
+        // Envoyer une notification WebSocket
+        WebSocketMessage kickMessage = new WebSocketMessage(
+                "PLAYER_KICKED",
+                Map.of(
+                        "mapId", mapId,
+                        "userId", userId,
+                        "username", player.getUser().getUsername()
+                ),
+                username,
+                System.currentTimeMillis()
+        );
+
+        messagingTemplate.convertAndSend("/topic/field/" + gameMap.getField(), kickMessage);
+
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+
 }
