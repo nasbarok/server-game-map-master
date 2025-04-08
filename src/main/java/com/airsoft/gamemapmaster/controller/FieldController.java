@@ -143,7 +143,7 @@ public class FieldController {
                         "ownerUsername", username,
                         "openedAt", field.getOpenedAt().toString()
                 ),
-                username,
+                userOpt.get().getId(),
                 System.currentTimeMillis()
         );
 
@@ -179,7 +179,7 @@ public class FieldController {
                         "ownerUsername", username,
                         "closedAt", LocalDateTime.now().toString()
                 ),
-                username,
+                userOpt.get().getId(),
                 System.currentTimeMillis()
         );
 
@@ -252,14 +252,23 @@ public class FieldController {
 
         if (activeSession.isPresent()) {
             Field activeField = activeSession.get().getField();
-            User host = activeField.getOwner();
-            host.setPassword(null);
-            activeField.setOwner(host);
-            return ResponseEntity.ok(Map.of(
-                    "active", true,
-                    "role", "GAMER",
-                    "field", activeField
-            ));
+
+            boolean isStillConnected = connectedPlayerService.isPlayerConnectedToField(activeField.getId(), user.getId());
+
+            if (isStillConnected) {
+                // ✅ Toujours connecté → OK
+                User host = activeField.getOwner();
+                host.setPassword(null);
+                activeField.setOwner(host);
+                return ResponseEntity.ok(Map.of(
+                        "active", true,
+                        "role", "GAMER",
+                        "field", activeField
+                ));
+            } else {
+                // ❌ N'est plus connecté → Pas de terrain actif
+                return ResponseEntity.ok(Map.of("active", false));
+            }
         }
 
         // ❌ Aucun terrain actif trouvé pour ce joueur
@@ -267,21 +276,6 @@ public class FieldController {
     }
 
 
-    @GetMapping("/history")
-    public ResponseEntity<?> getFieldHistory(Authentication authentication) {
-        String username = authentication.getName();
-        Optional<User> userOpt = userService.findByUsername(username);
 
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
-        }
-
-        User user = userOpt.get();
-
-        // Récupérer l'historique des terrains visités par l'utilisateur
-        List<Field> fields = fieldUserHistoryService.getFieldsVisitedByUser(user.getId());
-
-        return ResponseEntity.ok(fields);
-    }
 
 }

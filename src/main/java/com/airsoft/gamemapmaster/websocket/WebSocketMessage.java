@@ -20,13 +20,13 @@ import java.util.Map;
 public class WebSocketMessage {
     private String type;
     private Object payload;
-    private String sender;
+    private Long senderId;
     private long timestamp;
 
     // Constructeurs, getters, setters...
 
     // Méthodes utilitaires pour créer des messages standardisés
-    public static WebSocketMessage playerConnected(ConnectedPlayer player, Long fieldId) {
+    public static WebSocketMessage playerConnected(ConnectedPlayer player, Long fieldId, Long senderId) {
         Map<String, Object> playerData = new HashMap<>();
         playerData.put("id", player.getUser().getId());
         playerData.put("username", player.getUser().getUsername());
@@ -42,12 +42,12 @@ public class WebSocketMessage {
         return new WebSocketMessage(
                 "PLAYER_CONNECTED",
                 payload,
-                player.getUser().getUsername(),
+                senderId,
                 System.currentTimeMillis()
         );
     }
 
-    public static WebSocketMessage playerDisconnected(User user, Long fieldId) {
+    public static WebSocketMessage playerDisconnected(User user, Long fieldId, Long senderId) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("userId", user.getId());
         payload.put("username", user.getUsername());
@@ -56,12 +56,12 @@ public class WebSocketMessage {
         return new WebSocketMessage(
                 "PLAYER_DISCONNECTED",
                 payload,
-                user.getUsername(),
+                senderId,
                 System.currentTimeMillis()
         );
     }
 
-    public static WebSocketMessage teamUpdated(Team team) {
+    public static WebSocketMessage teamUpdated(Team team, Long senderId) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("teamId", team.getId());
         payload.put("teamName", team.getName());
@@ -70,12 +70,12 @@ public class WebSocketMessage {
         return new WebSocketMessage(
                 "TEAM_UPDATED",
                 payload,
-                "system",
+                senderId,
                 System.currentTimeMillis()
         );
     }
 
-    public static WebSocketMessage fieldClosed(Field field) {
+    public static WebSocketMessage fieldClosed(Field field, Long senderId) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("fieldId", field.getId());
         payload.put("fieldName", field.getName());
@@ -83,8 +83,25 @@ public class WebSocketMessage {
         return new WebSocketMessage(
                 "FIELD_CLOSED",
                 payload,
-                "system",
+                senderId,
                 System.currentTimeMillis()
         );
     }
+
+    public static WebSocketMessage teamUpdateRemove(Long mapId, Long userId, Long fieldId, Long senderId) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("mapId", mapId);
+        payload.put("userId", userId);
+        payload.put("teamId", null);
+        payload.put("action", "REMOVE_FROM_TEAM");
+        payload.put("fieldId", fieldId);
+
+        return new WebSocketMessage(
+                "TEAM_UPDATE",
+                payload,
+                senderId,
+                System.currentTimeMillis()
+        );
+    }
+
 }

@@ -1,9 +1,6 @@
 package com.airsoft.gamemapmaster.controller;
 
-import com.airsoft.gamemapmaster.model.ConnectedPlayer;
-import com.airsoft.gamemapmaster.model.GameMap;
-import com.airsoft.gamemapmaster.model.Team;
-import com.airsoft.gamemapmaster.model.User;
+import com.airsoft.gamemapmaster.model.*;
 import com.airsoft.gamemapmaster.service.*;
 import com.airsoft.gamemapmaster.websocket.WebSocketMessage;
 import org.slf4j.Logger;
@@ -15,6 +12,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,6 +39,7 @@ public class PlayerConnectionController {
     private FieldService fieldService;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+
     /**
      * Endpoint pour qu'un joueur rejoigne une carte
      */
@@ -71,6 +70,21 @@ public class PlayerConnectionController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Impossible de rejoindre la carte");
         }
 
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("playerId", user.get().getId());
+        payload.put("fieldId", fieldId);
+        payload.put("playerUsername", user.get().getUsername());
+
+        Map<String, Object> playerConnectedPayload = Map.of(
+                "type", "PLAYER_CONNECTED",
+                "senderId", user.get().getId(), // L'ID du joueur connecté
+                "payload", payload,
+                "timestamp", System.currentTimeMillis()
+        );
+
+        // Envoi WebSocket
+        messagingTemplate.convertAndSend("/topic/field/" + fieldId, playerConnectedPayload);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(connectedPlayer);
     }
 
@@ -80,13 +94,13 @@ public class PlayerConnectionController {
     @PostMapping("/{fieldId}/leave")
     public ResponseEntity<?> leaveMap(@PathVariable("fieldId") Long fieldId, Authentication authentication) {
         String username = authentication.getName();
-        Optional<User> user = userService.findByUsername(username);
+        Optional<User> userSender = userService.findByUsername(username);
 
-        if (user.isEmpty()) {
+        if (userSender.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
         }
 
-        boolean disconnected = connectedPlayerService.disconnectPlayerFromField(fieldId, user.get().getId());
+        boolean disconnected = connectedPlayerService.disconnectPlayerFromField(fieldId, userSender.get().getId());
 
         if (!disconnected) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Vous n'êtes pas connecté à cette carte");
@@ -95,11 +109,11 @@ public class PlayerConnectionController {
         WebSocketMessage playerDisconnectedMessage = new WebSocketMessage(
                 "PLAYER_DISCONNECTED",
                 Map.of(
-                        "userId", user.get().getId(),
-                        "username", user.get().getUsername(),
+                        "playerId", userSender.get().getId(),
+                        "playerUsername", userSender.get().getUsername(),
                         "fieldId", fieldId
                 ),
-                authentication.getName(),
+                userSender.get().getId(),
                 System.currentTimeMillis()
         );
         messagingTemplate.convertAndSend("/topic/field/" + fieldId, playerDisconnectedMessage);
@@ -169,7 +183,7 @@ public class PlayerConnectionController {
             connectedPlayerOpt.get().setTeam(null);
             updatedPlayer = connectedPlayerService.save(connectedPlayerOpt.get());
             logger.info("Joueur {} retiré de l'équipe pour la carte {}", playerId, mapId);
-        }else{
+        } else {
             // ✅ Affectation
             ConnectedPlayer player = connectedPlayerOpt.get();
             player.setTeam(teamOpt.get());
@@ -193,7 +207,7 @@ public class PlayerConnectionController {
                         "teamName", teamName,
                         "action", "ASSIGN_PLAYER"
                 ),
-                authentication.getName(),
+                currentUser.get().getId(),
                 System.currentTimeMillis()
         );
 
@@ -204,52 +218,51 @@ public class PlayerConnectionController {
     }
 
     // Dans PlayerConnectionController.java
-    @PostMapping("/{mapId}/players/{userId}/kick")
-    public ResponseEntity<?> kickPlayer(@PathVariable("mapId") Long mapId,
+    @PostMapping("/{fieldId}/players/{userId}/kick")
+    public ResponseEntity<?> kickPlayer(@PathVariable("fieldId") Long fieldId,
                                         @PathVariable("userId") Long userId,
                                         Authentication authentication) {
         String username = authentication.getName();
-        Optional<User> currentUser = userService.findByUsername(username);
+        Optional<User> senderUser = userService.findByUsername(username);
 
-        if (currentUser.isEmpty()) {
+        if (senderUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
         }
 
-        // Vérifier si l'utilisateur actuel est l'hôte de la carte
-        Optional<GameMap> gameMapOpt = gameMapService.findById(mapId);
-        if (gameMapOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Carte non trouvée");
+        Field field = fieldService.findById(fieldId).orElse(null);
+
+        // ✅ Vérifier que l'utilisateur est bien l'hôte
+        if (!field.getOwner().getId().equals(senderUser.get().getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Seul l'hôte peut exclure des joueurs");
         }
 
-        GameMap gameMap = gameMapOpt.get();
-        if (!gameMap.getOwner().getId().equals(currentUser.get().getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Seul l'hôte peut déconnecter des joueurs");
-        }
-
-        // Récupérer le joueur connecté
-        Optional<ConnectedPlayer> connectedPlayerOpt = connectedPlayerService.getConnectedPlayerByUserAndMap(userId, mapId);
+        // ✅ Trouver le joueur connecté
+        Optional<ConnectedPlayer> connectedPlayerOpt = connectedPlayerService.getConnectedPlayersByFieldId(fieldId)
+                .stream()
+                .filter(player -> player.getUser().getId().equals(userId))
+                .findFirst();
         if (connectedPlayerOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Joueur non connecté à cette carte");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Joueur non connecté à ce terrain");
         }
 
         ConnectedPlayer player = connectedPlayerOpt.get();
 
-        // Déconnecter le joueur
-        connectedPlayerService.disconnectPlayerFromField(gameMap.getField().getId(),player.getId());
+        // ✅ Déconnecter le joueur
+        connectedPlayerService.disconnectPlayerFromField(fieldId, player.getUser().getId());
 
-        // Envoyer une notification WebSocket
+        // ✅ Envoyer une notification WebSocket
         WebSocketMessage kickMessage = new WebSocketMessage(
                 "PLAYER_KICKED",
                 Map.of(
-                        "mapId", mapId,
+                        "fieldId", fieldId,            // Remplacer mapId → fieldId
                         "userId", userId,
                         "username", player.getUser().getUsername()
                 ),
-                username,
+                senderUser.get().getId(),
                 System.currentTimeMillis()
         );
 
-        messagingTemplate.convertAndSend("/topic/field/" + gameMap.getField(), kickMessage);
+        messagingTemplate.convertAndSend("/topic/field/" + fieldId, kickMessage);
 
         return ResponseEntity.ok(Map.of("success", true));
     }

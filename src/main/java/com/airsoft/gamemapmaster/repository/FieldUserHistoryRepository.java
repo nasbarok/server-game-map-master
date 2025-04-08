@@ -4,6 +4,7 @@ import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.FieldUserHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -23,9 +24,13 @@ public interface FieldUserHistoryRepository extends JpaRepository<FieldUserHisto
     Optional<FieldUserHistory> findTopByUserIdAndSessionClosedFalseOrderByFieldIdDesc(Long id);
 
     @Query("SELECT h.field FROM FieldUserHistory h WHERE h.user.id = :id")
-    List<Field> findFieldsVisitedByUser(Long id);
+    List<Field> findFieldsVisitedByUser(@Param("id") Long id);
 
     Optional<FieldUserHistory> findLatestByUserIdAndFieldId(Long userId, Long fieldId);
 
-    List<Long> findFieldIdsByUserId(Long userId);
+    @Query("SELECT h FROM FieldUserHistory h WHERE h.user.id = :userId AND h.field.id = :fieldId")
+    List<FieldUserHistory> findAllFieldUserHistoriesByUserIdAndFieldId(
+            @Param("userId") Long userId,
+            @Param("fieldId") Long fieldId
+    );
 }

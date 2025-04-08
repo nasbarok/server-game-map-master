@@ -218,6 +218,10 @@ public class ConnectedPlayerServiceImpl implements ConnectedPlayerService {
 
         for (ConnectedPlayer player : connectedPlayers) {
             player.setActive(false);
+            player.setField(null);
+            player.setJoinedAt(null);
+            player.setTeam(null);
+            player.setGameMap(null);
             connectedPlayerRepository.save(player);
         }
         return connectedPlayers.size();

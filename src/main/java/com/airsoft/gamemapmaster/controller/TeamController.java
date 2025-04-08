@@ -57,6 +57,8 @@ public class TeamController {
                                                      Authentication authentication) {
         String name = body.get("name");
 
+        User user = userService.findByUsername(authentication.getName()).orElse(null);
+
         if (name == null || name.isEmpty()) {
             return ResponseEntity.badRequest().body(null);
         }
@@ -82,7 +84,7 @@ public class TeamController {
                         ),
                         "mapId", mapId
                 ),
-                authentication.getName(),
+                user.getId(),
                 System.currentTimeMillis()
         );
 
@@ -94,6 +96,7 @@ public class TeamController {
     @PutMapping("/{id}")
     public ResponseEntity<Team> updateTeam(@PathVariable Long id, @RequestBody Team team, Authentication authentication) {
 
+        User userSender = userService.findByUsername(authentication.getName()).orElse(null);
         // 🔹 Étape 1 : Vérifier si l'équipe existe
         Optional<Team> optionalTeam = teamService.findById(id);
         if (optionalTeam.isEmpty()) {
@@ -115,7 +118,7 @@ public class TeamController {
                         "teamName", updatedTeam.getName(),
                         "mapId", gameMap.getId()
                 ),
-                authentication.getName(), // Nom de l’utilisateur authentifié
+                userSender.getId(), // Nom de l’utilisateur authentifié
                 System.currentTimeMillis()
         );
 
@@ -128,6 +131,8 @@ public class TeamController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTeam(@PathVariable Long id, Authentication authentication) {
+        User userSender = userService.findByUsername(authentication.getName()).orElse(null);
+
         Team team = teamService.findById(id).orElse(null);
         if (team == null) {
             return ResponseEntity.notFound().build();
@@ -151,7 +156,7 @@ public class TeamController {
                         "teamId", id,
                         "mapId", gameMap.getId()
                 ),
-                authentication.getName(),
+                userSender.getId(),
                 System.currentTimeMillis()
         );
 
@@ -225,18 +230,12 @@ public class TeamController {
         player.setTeam(null);
         connectedPlayerService.save(player);
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("mapId", mapId);
-        payload.put("userId", userId);
-        payload.put("teamId", null); // Ceci est accepté avec HashMap
-        payload.put("action", "REMOVE_FROM_TEAM");
-
         // Notification WebSocket
-        WebSocketMessage teamUpdateMessage = new WebSocketMessage(
-                "TEAM_UPDATE",
-                payload,
-                username,
-                System.currentTimeMillis()
+        WebSocketMessage teamUpdateMessage = WebSocketMessage.teamUpdateRemove(
+                mapId,
+                userId,
+                optionalMap.get().getField().getId(),
+                currentUser.get().getId()
         );
 
         messagingTemplate.convertAndSend("/topic/field/" + optionalMap.get().getField().getId(), teamUpdateMessage);

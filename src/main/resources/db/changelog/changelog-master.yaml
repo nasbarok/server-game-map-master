@@ -541,4 +541,19 @@ databaseChangeLog:
             referencedTableName: users
             referencedColumnNames: id
             constraintName: fk_connected_player_user
-
+  - changeSet:
+      id: make-game-map-nullable
+      author: dev
+      changes:
+        - dropNotNullConstraint:
+            tableName: connected_players
+            columnName: game_map_id
+            columnDataType: bigint
+  - changeSet:
+      id: make-game-map-nullable-02
+      author: dev
+      changes:
+        - dropNotNullConstraint:
+            tableName: connected_players
+            columnName: joined_at
+            columnDataType: DATETIME

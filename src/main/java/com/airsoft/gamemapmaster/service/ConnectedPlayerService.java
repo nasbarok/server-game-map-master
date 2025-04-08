@@ -83,4 +83,5 @@ public interface ConnectedPlayerService {
     boolean disconnectPlayerFromField(Long fieldId, Long id);
 
     int disconnectAllPlayersFromField(Long fieldId);
+
 }

@@ -1,5 +1,6 @@
 com\airsoft\gamemapmaster\repository\FieldRepository.class
 com\airsoft\gamemapmaster\config\WebSocketConfig.class
+com\airsoft\gamemapmaster\model\GameSession.class
 com\airsoft\gamemapmaster\scenario\treasurehunt\service\impl\TreasureHuntServiceImpl.class
 com\airsoft\gamemapmaster\security\config\WebSecurityConfig.class
 com\airsoft\gamemapmaster\model\User.class
@@ -13,9 +14,11 @@ com\airsoft\gamemapmaster\scenario\treasurehunt\TreasureHuntModule.class
 com\airsoft\gamemapmaster\security\jwt\JwtTokenProvider.class
 com\airsoft\gamemapmaster\service\ScenarioService.class
 com\airsoft\gamemapmaster\scenario\treasurehunt\repository\TreasureRepository.class
+com\airsoft\gamemapmaster\service\impl\FieldUserHistoryServiceImpl.class
 com\airsoft\gamemapmaster\config\WebConfig.class
 com\airsoft\gamemapmaster\model\Invitation.class
 com\airsoft\gamemapmaster\service\impl\ConnectedPlayerServiceImpl.class
+com\airsoft\gamemapmaster\service\FieldUserHistoryService.class
 com\airsoft\gamemapmaster\service\impl\ScenarioServiceImpl.class
 com\airsoft\gamemapmaster\service\impl\UserServiceImpl.class
 com\airsoft\gamemapmaster\controller\ScenarioModuleController.class
@@ -23,11 +26,15 @@ com\airsoft\gamemapmaster\scenario\treasurehunt\model\Treasure.class
 com\airsoft\gamemapmaster\security\controller\AuthController$ApiResponse.class
 com\airsoft\gamemapmaster\repository\ScenarioRepository.class
 com\airsoft\gamemapmaster\model\Scenario.class
+com\airsoft\gamemapmaster\controller\FieldUserHistoryController.class
 com\airsoft\gamemapmaster\controller\GameSessionController.class
+com\airsoft\gamemapmaster\repository\GameSessionRepository.class
 com\airsoft\gamemapmaster\scenario\treasurehunt\model\TreasureFound.class
+com\airsoft\gamemapmaster\repository\FieldUserHistoryRepository.class
 com\airsoft\gamemapmaster\service\TeamService.class
 com\airsoft\gamemapmaster\controller\GameMapController.class
 com\airsoft\gamemapmaster\model\TeamMember.class
+com\airsoft\gamemapmaster\service\GameSessionService.class
 com\airsoft\gamemapmaster\GameMapMasterApplication.class
 com\airsoft\gamemapmaster\security\controller\AuthController.class
 com\airsoft\gamemapmaster\service\InvitationService.class
@@ -35,6 +42,7 @@ com\airsoft\gamemapmaster\repository\InvitationRepository.class
 com\airsoft\gamemapmaster\scenario\treasurehunt\repository\TreasureHuntScenarioRepository.class
 com\airsoft\gamemapmaster\config\SwaggerConfig.class
 com\airsoft\gamemapmaster\repository\GameMapRepository.class
+com\airsoft\gamemapmaster\model\DTO\TeamDTO.class
 com\airsoft\gamemapmaster\scenario\treasurehunt\model\TreasureHuntScenario.class
 com\airsoft\gamemapmaster\service\impl\InvitationServiceImpl.class
 com\airsoft\gamemapmaster\controller\PlayerConnectionController.class
@@ -61,6 +69,8 @@ com\airsoft\gamemapmaster\controller\FieldController.class
 com\airsoft\gamemapmaster\service\FieldService.class
 com\airsoft\gamemapmaster\service\impl\GameMapServiceImpl.class
 com\airsoft\gamemapmaster\websocket\WebSocketMessage.class
+com\airsoft\gamemapmaster\model\FieldUserHistory.class
+com\airsoft\gamemapmaster\service\impl\GameSessionServiceImpl.class
 com\airsoft\gamemapmaster\controller\InvitationController.class
 com\airsoft\gamemapmaster\model\Team.class
 com\airsoft\gamemapmaster\controller\TeamController.class

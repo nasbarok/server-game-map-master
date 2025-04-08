@@ -2,6 +2,7 @@ package com.airsoft.gamemapmaster.service;
 
 import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.FieldUserHistory;
+import com.airsoft.gamemapmaster.model.User;
 
 import java.util.List;
 
@@ -18,4 +19,6 @@ public interface FieldUserHistoryService {
     List<FieldUserHistory> getHistoryForField(Long fieldId);
 
     List<Field> getFieldsVisitedByUser(Long id);
+
+    boolean deleteHistoryEntryIfOwnedByUser(Long historyId, User user);
 }

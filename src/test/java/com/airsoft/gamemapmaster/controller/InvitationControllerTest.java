@@ -60,7 +60,6 @@ public class InvitationControllerTest {
         testInvitation = new Invitation();
         testInvitation.setId(1L);
         testInvitation.setUser(testUser);
-        testInvitation.setScenario(testScenario);
         testInvitation.setStatus("PENDING");
 
         when(authentication.getName()).thenReturn("testuser");

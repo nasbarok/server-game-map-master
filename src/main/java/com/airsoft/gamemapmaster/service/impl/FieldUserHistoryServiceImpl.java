@@ -2,6 +2,7 @@ package com.airsoft.gamemapmaster.service.impl;
 
 import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.FieldUserHistory;
+import com.airsoft.gamemapmaster.model.User;
 import com.airsoft.gamemapmaster.repository.FieldRepository;
 import com.airsoft.gamemapmaster.repository.FieldUserHistoryRepository;
 import com.airsoft.gamemapmaster.service.FieldService;
@@ -66,16 +67,22 @@ public class FieldUserHistoryServiceImpl implements FieldUserHistoryService {
     @Override
     public List<Field> getFieldsVisitedByUser(Long userId) {
         // Récupérer les IDs des terrains visités par l'utilisateur
-        List<Long> fieldIds = fieldUserHistoryRepository.findFieldIdsByUserId(userId);
+        List<Field> fields = fieldUserHistoryRepository.findFieldsVisitedByUser(userId);
+        return fields;
+    }
 
-        // Récupérer les terrains correspondants
-        List<Field> fields = new ArrayList<>();
-        for (Long fieldId : fieldIds) {
-            Optional<Field> fieldOpt = fieldRepository.findById(fieldId);
-            fieldOpt.ifPresent(fields::add);
+    @Override
+    public boolean deleteHistoryEntryIfOwnedByUser(Long historyId, User user) {
+        List<FieldUserHistory> historyListOpt = fieldUserHistoryRepository.findAllFieldUserHistoriesByUserIdAndFieldId(user.getId(),historyId);
+
+        for (FieldUserHistory history : historyListOpt) {
+            if (history.getUser().getId().equals(user.getId())) {
+                fieldUserHistoryRepository.deleteById(history.getId());
+            }
+            return true;
         }
 
-        return fields;
+        return false;
     }
 
     @Override

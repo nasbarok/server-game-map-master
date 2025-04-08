@@ -2,12 +2,10 @@ package com.airsoft.gamemapmaster.websocket;
 
 import com.airsoft.gamemapmaster.controller.GameMapController;
 import com.airsoft.gamemapmaster.model.ConnectedPlayer;
+import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.Team;
 import com.airsoft.gamemapmaster.model.User;
-import com.airsoft.gamemapmaster.service.ConnectedPlayerService;
-import com.airsoft.gamemapmaster.service.FieldUserHistoryService;
-import com.airsoft.gamemapmaster.service.TeamService;
-import com.airsoft.gamemapmaster.service.UserService;
+import com.airsoft.gamemapmaster.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +40,9 @@ public class WebSocketController {
 
     @Autowired
     private FieldUserHistoryService fieldUserHistoryService;
+
+    @Autowired
+    private FieldService fieldService;
     /**
      * Gère les messages envoyés à /app/message
      * Diffuse le message à tous les abonnés de /topic/public
@@ -49,7 +50,8 @@ public class WebSocketController {
     @MessageMapping("/message")
     public void processMessage(@Payload WebSocketMessage message, Principal principal) {
         if (principal != null) {
-            message.setSender(principal.getName());
+            User user = userService.findByUsername(principal.getName()).orElse(null);
+            message.setSenderId(user.getId());
         }
         messagingTemplate.convertAndSend("/topic/public", message);
     }
@@ -61,7 +63,7 @@ public class WebSocketController {
     @MessageMapping("/private-message")
     public void sendPrivateMessage(@Payload WebSocketMessage message) {
         messagingTemplate.convertAndSendToUser(
-                message.getSender(), "/queue/private", message);
+                String.valueOf(message.getSenderId()), "/queue/private", message);
     }
 
     /**
@@ -75,38 +77,54 @@ public class WebSocketController {
     }
 
     @MessageMapping("/invitation")
-    public void handleInvitation(@Payload WebSocketMessage message, Principal principal) {
-        // Tu peux récupérer l'identité de l'expéditeur ici
-        if (principal != null) {
-            message.setSender(principal.getName());
+    public void handleInvitation(@Payload Map<String, Object> rawMessage, Principal principal) {
+
+
+        Long senderId =  Long.valueOf(rawMessage.get("senderId").toString());
+        Long targetUserId = Long.valueOf(rawMessage.get("targetUserId").toString());
+        Long fieldId = Long.valueOf(rawMessage.get("fieldId").toString());
+
+        User targetUser = userService.findById(targetUserId).orElse(null);
+        if (targetUser == null){
+            logger.warn("⚠️ Utilisateur non trouvé pour l'invitation");
+            return;
         }
+        User senderUser = userService.findById(senderId).orElse(null);
 
-        // Extraire les infos nécessaires de payload
-        Map<String, Object> data = (Map<String, Object>) message.getPayload();
-        Long toUserId = Long.valueOf(data.get("toUserId").toString());
+        Field field = fieldService.findById(fieldId).orElse(null);
 
-        // Recréer le message structuré
+        // Recréer le message à envoyer au joueur ciblé
+        Map<String, Object> invitationData = new HashMap<>();
+        invitationData.put("fieldId", fieldId);
+        invitationData.put("senderId", senderId);
+        invitationData.put("targetUserId", targetUserId);
+        invitationData.put("fromUsername", senderUser.getUsername());
+        invitationData.put("mapName", field.getName());
+
         WebSocketMessage invitationMessage = new WebSocketMessage(
                 "INVITATION_RECEIVED",
-                data,
-                message.getSender(),
+                invitationData,
+                senderId,
                 System.currentTimeMillis()
         );
 
-        // Envoyer sur le bon canal
-        messagingTemplate.convertAndSend("/topic/user/" + toUserId, invitationMessage);
+        logger.info("📩 Envoi d'une invitation de {} à {}", senderId, targetUserId);
+
+        // Envoi vers le canal du joueur cible
+        messagingTemplate.convertAndSend("/topic/user/" + targetUserId, invitationMessage);
     }
+
     @MessageMapping("/invitation-response")
     public void handleInvitationResponse(@Payload WebSocketMessage message) {
         Map<String, Object> payload = (Map<String, Object>) message.getPayload();
-        Long fromUserId = Long.valueOf(payload.get("fromUserId").toString());
-        Long toUserId = Long.valueOf(payload.get("toUserId").toString());
-        Long mapId = Long.valueOf(payload.get("mapId").toString());
+        Long fromUserId = Long.valueOf(payload.get("senderId").toString());
+        Long toUserId = Long.valueOf(payload.get("targetUserId").toString());
         Long fieldId = Long.valueOf(payload.get("fieldId").toString());
         boolean accepted = Boolean.parseBoolean(payload.get("accepted").toString());
 
         // ✅ Récupération du joueur
         Optional<User> fromUser = userService.findById(fromUserId);
+        String fromUsername = fromUser.map(User::getUsername).orElse("unknown");
 
         // ✅ Si accepté, connecter le joueur au field s'il ne l'est pas déjà
         if (accepted) {
@@ -116,44 +134,36 @@ public class WebSocketController {
                 ConnectedPlayer connectedPlayer = connectedPlayerService.connectPlayerToField(fieldId, fromUserId, null); // Pas d'équipe au départ
                 // 🔹 Ajout dans l'historique de connexion
                 fieldUserHistoryService.logJoin(fromUserId,fieldId);
-                Map<String, Object> playerData = new HashMap<>();
-                playerData.put("id", connectedPlayer.getUser().getId());
-                playerData.put("username", connectedPlayer.getUser().getUsername());
-                if (connectedPlayer.getTeam() != null) {
-                    playerData.put("teamId", connectedPlayer.getTeam().getId());
-                    playerData.put("teamName", connectedPlayer.getTeam().getName());
-                }
 
-                Map<String, Object> messagePayload = new HashMap<>();
-                messagePayload.put("player", playerData);
-                messagePayload.put("fieldId", fieldId);
+                Map<String, Object> playerConnectedPayload = new HashMap<>();
+                playerConnectedPayload.put("playerId", connectedPlayer.getUser().getId());
+                playerConnectedPayload.put("senderId", fromUserId);
+                playerConnectedPayload.put("playerUsername", connectedPlayer.getUser().getUsername());
+                playerConnectedPayload.put("fieldId", fieldId);
 
                 WebSocketMessage playerConnectedMessage = new WebSocketMessage(
                         "PLAYER_CONNECTED",
-                        messagePayload,
-                        fromUserId.toString(),
+                        playerConnectedPayload,
+                        fromUserId,
                         System.currentTimeMillis()
                 );
                 // 🔹 Envoi du message à tous les utilisateurs connectés au terrain
                 messagingTemplate.convertAndSend("/topic/field/" + fieldId, playerConnectedMessage);
             }
         }
-
-        // ✅ Récupération de l'équipe via ConnectedPlayerRepository
-        Team team = connectedPlayerService.findTeamByUserAndMap(fromUserId, mapId);
-
-        // ✅ Enrichissement du message
-        fromUser.ifPresent(user -> payload.put("fromUsername", user.getUsername()));
-
-        if (team != null) {
-            payload.put("teamId", team.getId());
-            payload.put("teamName", team.getName());
-        }
+        String mapName = (String) payload.getOrDefault("mapName", "Unknown Map");
+        Map<String, Object> responsePayload = new HashMap<>();
+        responsePayload.put("fieldId", fieldId);
+        responsePayload.put("senderId", fromUserId);
+        responsePayload.put("targetUserId", toUserId);
+        responsePayload.put("fromUsername", fromUsername);
+        responsePayload.put("mapName", mapName);
+        responsePayload.put("accepted", accepted);
 
         WebSocketMessage responseMessage = new WebSocketMessage(
                 "INVITATION_RESPONSE",
-                payload,
-                payload.get("fromUserId").toString(),
+                responsePayload,
+                fromUserId,
                 System.currentTimeMillis()
         );
 
