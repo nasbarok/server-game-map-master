@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/games")
+@RequestMapping("/api/game")
 public class GameSessionController {
     private static final Logger logger = LoggerFactory.getLogger(GameSessionController.class);
     @Autowired
@@ -36,47 +36,39 @@ public class GameSessionController {
     /**
      * Démarre une partie sur une carte
      */
-    @PostMapping("/maps/{mapId}/start")
-    public ResponseEntity<?> startGame(@PathVariable("mapId") Long mapId,
-                                      @RequestParam("scenarioId") Long scenarioId,
-                                      Authentication authentication) {
+    @PostMapping("/{fieldId}/start")
+    public ResponseEntity<?> startGameFromField(
+            @PathVariable Long fieldId,
+            Authentication authentication) {
         String username = authentication.getName();
-        Optional<User> user = userService.findByUsername(username);
-        
-        if (user.isEmpty()) {
+        Optional<User> userOpt = userService.findByUsername(username);
+
+        if (userOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
         }
-        
-        // Vérifier si l'utilisateur est le propriétaire de la carte
-        Optional<GameMap> gameMapOpt = gameMapService.findById(mapId);
-        if (gameMapOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Carte non trouvée");
+
+        Optional<Field> fieldOpt = fieldService.findById(fieldId);
+        if (fieldOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Terrain non trouvé");
         }
-        
-        GameMap gameMap = gameMapOpt.get();
-        if (!gameMap.getOwner().getId().equals(user.get().getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("Vous n'êtes pas autorisé à démarrer une partie sur cette carte");
+
+        Field field = fieldOpt.get();
+
+        // Vérifier que le terrain appartient bien à l'utilisateur
+        if (!field.getOwner().getId().equals(userOpt.get().getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Non autorisé à démarrer une partie sur ce terrain");
         }
-        
-        // Vérifier si le scénario existe et est associé à cette carte
-        Optional<Scenario> scenarioOpt = scenarioService.findById(scenarioId);
-        if (scenarioOpt.isEmpty() || !scenarioOpt.get().getGameMap().getId().equals(mapId)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Scénario non trouvé ou non associé à cette carte");
-        }
-        
-        // Logique pour démarrer la partie
-        // Dans une implémentation réelle, on pourrait mettre à jour le statut du scénario, 
-        // envoyer des notifications aux joueurs connectés, etc.
-        
+        // 👉 Ici, tu peux démarrer ta vraie logique GameSession : création en base
+        GameSession session = gameSessionService.startNewSession(field);
+
         return ResponseEntity.ok(Map.of(
                 "message", "Partie démarrée avec succès",
-                "gameMap", gameMap,
-                "scenario", scenarioOpt.get()
+                "gameSessionId", session.getId(),
+                "fieldId", field.getId()
         ));
     }
-    
+
+
     /**
      * Termine une partie sur une carte
      */
@@ -138,6 +130,49 @@ public class GameSessionController {
             response.put("status", "INACTIVE");
             response.put("active", false);
         }
+
+        return ResponseEntity.ok(response);
+    }
+
+
+
+    @GetMapping("/current-session/{fieldId}")
+    public ResponseEntity<?> getGameSessionByFieldId(@PathVariable Long fieldId) {
+        Optional<GameSession> sessionOpt = gameSessionService.findActiveSessionByFieldId(fieldId);
+
+        if (sessionOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Session de jeu non trouvée");
+        }
+
+        GameSession session = sessionOpt.get();
+        Map<String, Object> response = new HashMap<>();
+        response.put("gameSessionId", session.getId());
+        response.put("fieldId", session.getField().getId());
+        response.put("fieldName", session.getField().getName());
+        response.put("status", session.getStatus());
+        response.put("active", session.isActive());
+        response.put("startTime", session.getStartTime());
+        response.put("endTime", session.getEndTime());
+
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/session/{sessionId}")
+    public ResponseEntity<?> getGameSessionById(@PathVariable Long sessionId) {
+        Optional<GameSession> sessionOpt = gameSessionService.findById(sessionId);
+
+        if (sessionOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Session de jeu non trouvée");
+        }
+
+        GameSession session = sessionOpt.get();
+        Map<String, Object> response = new HashMap<>();
+        response.put("gameSessionId", session.getId());
+        response.put("fieldId", session.getField().getId());
+        response.put("fieldName", session.getField().getName());
+        response.put("status", session.getStatus());
+        response.put("active", session.isActive());
+        response.put("startTime", session.getStartTime());
+        response.put("endTime", session.getEndTime());
 
         return ResponseEntity.ok(response);
     }

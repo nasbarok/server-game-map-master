@@ -1,0 +1,127 @@
+databaseChangeLog:
+  - changeSet:
+      id: fields-01
+      author: nasbarok
+      changes:
+        - createTable:
+            tableName: fields
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+              - column:
+                  name: address
+                  type: VARCHAR(255)
+              - column:
+                  name: latitude
+                  type: DOUBLE
+              - column:
+                  name: longitude
+                  type: DOUBLE
+              - column:
+                  name: owner_id
+                  type: BIGINT
+              - column:
+                  name: size_x
+                  type: DOUBLE
+              - column:
+                  name: size_y
+                  type: DOUBLE
+              - column:
+                  name: image_url
+                  type: VARCHAR(255)
+              - column:
+                  name: opened_at
+                  type: DATETIME
+              - column:
+                  name: closed_at
+                  type: DATETIME
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: fields-02
+      author: nasbarok
+      changes:
+        - createTable:
+            tableName: game_maps
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+              - column:
+                  name: field_id
+                  type: BIGINT
+              - column:
+                  name: creator_id
+                  type: BIGINT
+              - column:
+                  name: active
+                  type: BOOLEAN
+              - column:
+                  name: owner_id
+                  type: BIGINT
+
+  - changeSet:
+      id: fields-03
+      author: nasbarok
+      changes:
+        - createTable:
+            tableName: field_user_history
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: field_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: joined_at
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: left_at
+                  type: DATETIME
+              - column:
+                  name: session_closed
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: connected-players-01
+      author: nasbarok
+      changes:
+        - createTable:
+            tableName: connected_players
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: game_map_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: field_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: team_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: joined_at
+                  type: DATETIME
+                  constraints:
+                    nullable: true
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false

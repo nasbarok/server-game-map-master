@@ -1,5 +1,6 @@
 package com.airsoft.gamemapmaster.service;
 
+import com.airsoft.gamemapmaster.model.GameMap;
 import com.airsoft.gamemapmaster.model.Scenario;
 
 import java.util.List;
@@ -15,4 +16,8 @@ public interface ScenarioService {
     void deleteById(Long id);
     Optional<Scenario> activateScenario(Long id);
     Optional<Scenario> deactivateScenario(Long id);
+
+    List<Scenario> getActiveScenarios(Long gameId);
+
+    List<Scenario> findByOwnerId(Long id);
 }

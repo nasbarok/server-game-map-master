@@ -10,5 +10,8 @@ import java.util.Optional;
 @Repository
 public interface TreasureRepository extends JpaRepository<Treasure, Long> {
     List<Treasure> findByTreasureHuntScenarioId(Long treasureHuntScenarioId);
+
     Optional<Treasure> findByQrCode(String qrCode);
+
+    List<Treasure> findByTreasureHuntScenarioIdOrderByOrderNumberAsc(Long treasureHuntScenarioId);
 }

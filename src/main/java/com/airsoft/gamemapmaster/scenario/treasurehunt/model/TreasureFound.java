@@ -31,7 +31,10 @@ public class TreasureFound {
     @ManyToOne
     @JoinColumn(name = "team_id")
     private Team team;
-    
+
+    @Column(name = "game_session_id")
+    private Long gameSessionId;
+
     @Column(nullable = false)
     private LocalDateTime foundAt;
     

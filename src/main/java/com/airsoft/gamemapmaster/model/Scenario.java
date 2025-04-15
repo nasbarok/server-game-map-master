@@ -32,7 +32,11 @@ public class Scenario {
     @ManyToOne
     @JoinColumn(name = "creator_id")
     private User creator;
-    
+
+    @ManyToOne
+    @JoinColumn(name = "game_session_id")
+    private GameSession gameSession;
+
     @Column(nullable = false)
     private String type; // Type de scénario (ex: "treasure_hunt", "capture_flag", etc.)
     

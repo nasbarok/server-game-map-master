@@ -1,0 +1,63 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01
+      author: nasbarok
+      preConditions:
+      onFail: MARK_RAN
+      not:
+        tableExists:
+          schemaName: airsoft_db
+          tableName: users
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column: { name: id, type: BIGINT AUTO_INCREMENT, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: username, type: VARCHAR(255), constraints: { nullable: false, unique: true } }
+              - column: { name: password, type: VARCHAR(255), constraints: { nullable: false } }
+              - column: { name: email, type: VARCHAR(255), constraints: { nullable: false, unique: true } }
+              - column: { name: first_name, type: VARCHAR(255) }
+              - column: { name: last_name, type: VARCHAR(255) }
+              - column: { name: phone_number, type: VARCHAR(255) }
+              - column: { name: active, type: BOOLEAN }
+
+        - createTable:
+            tableName: user_roles
+            columns:
+              - column: { name: user_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: role, type: VARCHAR(255), constraints: { nullable: false } }
+
+        - addPrimaryKey:
+            tableName: user_roles
+            columnNames: user_id, role
+            constraintName: pk_user_roles
+
+  - changeSet:
+      id: 02
+      author: nasbarok
+      preConditions:
+      onFail: MARK_RAN
+      not:
+        tableExists:
+          tableName: teams
+      changes:
+        - createTable:
+            tableName: teams
+            columns:
+              - column: { name: id, type: BIGINT AUTO_INCREMENT, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: name, type: VARCHAR(255), constraints: { nullable: false } }
+              - column: { name: description, type: VARCHAR(255) }
+              - column: { name: color, type: VARCHAR(255) }
+              - column: { name: leader_id, type: BIGINT }
+              - column: { name: game_map_id, type: BIGINT }
+
+        - createTable:
+            tableName: team_members
+            columns:
+              - column: { name: team_id, type: BIGINT }
+              - column: { name: user_id, type: BIGINT }
+
+        - addPrimaryKey:
+            tableName: team_members
+            columnNames: team_id, user_id
+            constraintName: pk_team_members

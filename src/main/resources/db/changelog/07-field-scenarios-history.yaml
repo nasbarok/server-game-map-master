@@ -1,0 +1,139 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20250409-01-create-field-scenarios
+      author: nasbarok
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          tableExists:
+            tableName: field_scenarios
+      changes:
+        - createTable:
+            tableName: field_scenarios
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: field_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scenario_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: field_scenarios
+            baseColumnNames: field_id
+            referencedTableName: fields
+            referencedColumnNames: id
+            constraintName: fk_fieldscenario_field
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: field_scenarios
+            baseColumnNames: scenario_id
+            referencedTableName: scenarios
+            referencedColumnNames: id
+            constraintName: fk_fieldscenario_scenario
+            onDelete: CASCADE
+  - changeSet:
+      id: 20250409-02-create-game-session-participants
+      author: nasbarok
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          tableExists:
+            tableName: game_session_participants
+      changes:
+        - createTable:
+            tableName: game_session_participants
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: game_session_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_username
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: team_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: team_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: participant_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: left_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+              - column:
+                  name: is_winner
+                  type: BOOLEAN
+                  constraints:
+                    nullable: true
+              - column:
+                  name: score_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+        - addForeignKeyConstraint:
+            baseTableName: game_session_participants
+            baseColumnNames: game_session_id
+            referencedTableName: game_sessions
+            referencedColumnNames: id
+            constraintName: fk_participant_session
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: game_session_participants
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_participant_user
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: game_session_participants
+            baseColumnNames: team_id
+            referencedTableName: teams
+            referencedColumnNames: id
+            constraintName: fk_participant_team
+            onDelete: SET_NULL

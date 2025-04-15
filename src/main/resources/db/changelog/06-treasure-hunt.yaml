@@ -1,0 +1,190 @@
+databaseChangeLog:
+  - changeSet:
+      id: treasure-hunt-01
+      author: nasbarok
+      changes:
+        - createTable:
+            tableName: treasure_hunt_scenarios
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: scenario_id
+                  type: BIGINT
+              - column:
+                  name: size
+                  type: VARCHAR(255)
+                  defaultValue: SMALL
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_treasures
+                  type: INT
+              - column:
+                  name: required_treasures
+                  type: INT
+              - column:
+                  name: team_based
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+              - column:
+                  name: default_value
+                  type: INT
+                  defaultValueNumeric: 50
+              - column:
+                  name: default_symbol
+                  type: VARCHAR(10)
+                  defaultValue: "💰"
+              - column:
+                  name: scores_locked
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+
+  - changeSet:
+      id: treasure-hunt-02
+      author: nasbarok
+      changes:
+        - createTable:
+            tableName: treasures
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: treasure_hunt_scenario_id
+                  type: BIGINT
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: symbol
+                  type: VARCHAR(10)
+                  defaultValue: "💰"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+              - column:
+                  name: qrCode
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: latitude
+                  type: DOUBLE
+              - column:
+                  name: longitude
+                  type: DOUBLE
+              - column:
+                  name: points
+                  type: INT
+              - column:
+                  name: order_number
+                  type: INT
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: treasure-hunt-03
+      author: nasbarok
+      changes:
+        - createTable:
+            tableName: treasures_found
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: treasure_id
+                  type: BIGINT
+              - column:
+                  name: user_id
+                  type: BIGINT
+              - column:
+                  name: team_id
+                  type: BIGINT
+              - column:
+                  name: game_session_id
+                  type: BIGINT
+              - column:
+                  name: found_at
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: treasure-hunt-04
+      author: nasbarok
+      changes:
+        - createTable:
+            tableName: treasure_hunt_scores
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: treasure_hunt_scenario_id
+                  type: BIGINT
+              - column:
+                  name: user_id
+                  type: BIGINT
+              - column:
+                  name: team_id
+                  type: BIGINT
+              - column:
+                  name: game_session_id
+                  type: BIGINT
+              - column:
+                  name: score
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: treasures_found
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_updated
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: treasure_hunt_scores
+            columnNames: treasure_hunt_scenario_id, user_id, game_session_id
+            constraintName: uk_treasurehuntscore_user_session
+  - changeSet:
+      id: treasure-hunt-03-drop-old-qrcode
+      author: nasbarok
+      changes:
+        - dropColumn:
+            columnName: qrCode
+            tableName: treasures

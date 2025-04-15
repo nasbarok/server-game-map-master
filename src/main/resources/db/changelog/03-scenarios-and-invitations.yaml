@@ -1,0 +1,78 @@
+databaseChangeLog:
+  - changeSet:
+      id: scenarios-01
+      author: nasbarok
+      changes:
+        - createTable:
+            tableName: scenarios
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+              - column:
+                  name: game_map_id
+                  type: BIGINT
+              - column:
+                  name: creator_id
+                  type: BIGINT
+              - column:
+                  name: type
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: start_time
+                  type: DATETIME
+              - column:
+                  name: end_time
+                  type: DATETIME
+              - column:
+                  name: max_players
+                  type: INT
+              - column:
+                  name: active
+                  type: BOOLEAN
+              - column:
+                  name: game_session_id
+                  type: BIGINT
+  - changeSet:
+      id: scenarios-02
+      author: nasbarok
+      changes:
+        - createTable:
+            tableName: invitations
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: field_id
+                  type: BIGINT
+              - column:
+                  name: user_id
+                  type: BIGINT
+              - column:
+                  name: status
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: responded_at
+                  type: DATETIME

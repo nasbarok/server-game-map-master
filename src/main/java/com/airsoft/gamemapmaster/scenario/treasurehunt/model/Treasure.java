@@ -1,18 +1,19 @@
 package com.airsoft.gamemapmaster.scenario.treasurehunt.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.*;
 
 import javax.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "treasures")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Treasure {
     
     @Id
@@ -25,10 +26,13 @@ public class Treasure {
     
     @Column(nullable = false)
     private String name;
-    
+
+    @Column(nullable = false)
+    private String symbol = "💰";
+
     private String description;
-    
-    @Column(nullable = false, unique = true)
+
+    @Column(name = "qr_code", nullable = false, unique = true)
     private String qrCode;
     
     private Double latitude;
@@ -36,7 +40,11 @@ public class Treasure {
     private Double longitude;
     
     private Integer points;
-    
+
+    @Column(nullable = false)
+    private Integer orderNumber;
+
+    @JsonIgnore
     @OneToMany(mappedBy = "treasure", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<TreasureFound> treasuresFound = new HashSet<>();
 }

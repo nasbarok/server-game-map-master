@@ -1,7 +1,9 @@
 package com.airsoft.gamemapmaster.service.impl;
 
+import com.airsoft.gamemapmaster.model.GameMap;
 import com.airsoft.gamemapmaster.model.Scenario;
 import com.airsoft.gamemapmaster.repository.ScenarioRepository;
+import com.airsoft.gamemapmaster.scenario.treasurehunt.service.TreasureHuntService;
 import com.airsoft.gamemapmaster.service.ScenarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,9 @@ public class ScenarioServiceImpl implements ScenarioService {
 
     @Autowired
     private ScenarioRepository scenarioRepository;
+
+    @Autowired
+    private TreasureHuntService treasureHuntService;
 
     @Override
     public List<Scenario> findAll() {
@@ -48,6 +53,12 @@ public class ScenarioServiceImpl implements ScenarioService {
 
     @Override
     public void deleteById(Long id) {
+        // 1. Vérifier s'il existe un TreasureHuntScenario lié
+        treasureHuntService.findByScenarioId(id).ifPresent(treasureHuntScenario -> {
+            treasureHuntService.deleteTreasureHuntScenarioById(treasureHuntScenario.getId());
+        });
+
+        // 2. Supprimer le Scenario lui-même
         scenarioRepository.deleteById(id);
     }
 
@@ -69,5 +80,15 @@ public class ScenarioServiceImpl implements ScenarioService {
                     scenario.setActive(false);
                     return scenarioRepository.save(scenario);
                 });
+    }
+
+    @Override
+    public List<Scenario> getActiveScenarios(Long gameId) {
+        return scenarioRepository.findByGameSessionIdAndActive(gameId, true);
+    }
+
+    @Override
+    public List<Scenario> findByOwnerId(Long id) {
+        return scenarioRepository.findByCreatorId(id); // Assuming the owner is the creator in this context
     }
 }
