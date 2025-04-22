@@ -1,5 +1,7 @@
 package com.airsoft.gamemapmaster.scenario.treasurehunt.model;
 
+import com.airsoft.gamemapmaster.model.Data.TreasureFoundData;
+import com.airsoft.gamemapmaster.websocket.WebSocketMessage;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,9 +15,15 @@ public class TreasureHuntNotification {
     private String message;
     private Object data;
 
-    public static TreasureHuntNotification treasureFound(TreasureFound treasureFound, String username,
-                                                         String teamName, int points, int totalScore,
-                                                         boolean isNewLeader) {
+    public static WebSocketMessage treasureFound(TreasureFound treasureFound,
+                                                 String username,
+                                                 String teamName,
+                                                 int points,
+                                                 int totalScore,
+                                                 boolean isNewLeader,
+                                                 Long senderId,
+                                                 Long gameSessionId) {
+
         TreasureHuntNotification notification = new TreasureHuntNotification();
         notification.setType("TREASURE_FOUND");
 
@@ -24,7 +32,6 @@ public class TreasureHuntNotification {
             message += " de l'équipe " + teamName;
         }
         message += " a trouvé un trésor de " + points + " points!";
-
         if (isNewLeader) {
             message += " Ils prennent la tête avec " + totalScore + " points!";
         }
@@ -40,11 +47,19 @@ public class TreasureHuntNotification {
         data.setTreasureId(treasureFound.getTreasure().getId());
         data.setTreasureName(treasureFound.getTreasure().getName());
         data.setSymbol(treasureFound.getTreasure().getSymbol());
+        data.setGameSessionId(gameSessionId);
+        data.setScenarioId(treasureFound.getTreasure().getTreasureHuntScenario().getScenario().getId());
 
         notification.setData(data);
 
-        return notification;
+        return new WebSocketMessage(
+                notification.getType(),
+                notification,
+                senderId,
+                System.currentTimeMillis()
+        );
     }
+
 
     public static TreasureHuntNotification scoreboardUpdate(Object scoreboard) {
         TreasureHuntNotification notification = new TreasureHuntNotification();
@@ -52,17 +67,5 @@ public class TreasureHuntNotification {
         notification.setMessage("Mise à jour du tableau des scores");
         notification.setData(scoreboard);
         return notification;
-    }
-
-    @Data
-    public static class TreasureFoundData {
-        private String username;
-        private String teamName;
-        private int points;
-        private int totalScore;
-        private Boolean isNewLeader;
-        private Long treasureId;
-        private String treasureName;
-        private String symbol;
     }
 }

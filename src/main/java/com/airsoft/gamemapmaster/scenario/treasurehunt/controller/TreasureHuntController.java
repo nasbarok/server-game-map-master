@@ -5,18 +5,21 @@ import com.airsoft.gamemapmaster.model.Team;
 import com.airsoft.gamemapmaster.model.User;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.model.Treasure;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.model.TreasureFound;
+import com.airsoft.gamemapmaster.scenario.treasurehunt.model.TreasureHuntNotification;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.model.TreasureHuntScenario;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.service.TreasureHuntService;
 import com.airsoft.gamemapmaster.service.GameSessionService;
 import com.airsoft.gamemapmaster.service.ScenarioService;
 import com.airsoft.gamemapmaster.service.TeamService;
 import com.airsoft.gamemapmaster.service.UserService;
+import com.airsoft.gamemapmaster.websocket.WebSocketMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,6 +48,9 @@ public class TreasureHuntController {
 
     @Autowired
     private GameSessionService gameSessionService;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     @PostMapping
     public ResponseEntity<TreasureHuntScenario> createTreasureHuntScenario(@RequestBody TreasureHuntScenario treasureHuntScenario) {
@@ -194,8 +200,11 @@ public class TreasureHuntController {
 
         String qrCode = (String) request.get("qrCode");
         Long teamId = request.get("teamId") != null ? Long.valueOf(request.get("teamId").toString()) : null;
+        Long gameSessionId = request.get("gameSessionId") != null
+                ? Long.valueOf(request.get("gameSessionId").toString())
+                : null;
 
-        if (qrCode == null || authentication == null) {
+        if (qrCode == null || authentication == null || gameSessionId == null) {
             return ResponseEntity.badRequest().build();
         }
 
@@ -205,27 +214,55 @@ public class TreasureHuntController {
         }
 
         User user = userOpt.get();
-        Long gameSessionId = gameSessionService.getCurrentGameSessionId();
+        Team team = teamId != null ? teamService.findById(teamId).orElse(null) : null;
 
-        boolean success = treasureHuntService.recordTreasureFound(qrCode, user.getId(), teamId, gameSessionId);
+        Optional<TreasureFound> foundOpt = treasureHuntService.recordTreasureFound(qrCode, user.getId(), teamId, gameSessionId);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("success", success);
+        response.put("success", foundOpt.isPresent());
 
-        if (success) {
-            Optional<Treasure> treasureOpt = treasureHuntService.findTreasureByQrCode(qrCode);
-            if (treasureOpt.isPresent()) {
-                Treasure treasure = treasureOpt.get();
-                response.put("treasureId", treasure.getId());
-                response.put("treasureName", treasure.getName());
-                response.put("points", treasure.getPoints());
-                response.put("symbol", treasure.getSymbol());
+        if (foundOpt.isPresent()) {
+            TreasureFound found = foundOpt.get();
+            Treasure treasure = found.getTreasure();
+            int points = treasure.getPoints();
+            int score = treasureHuntService.getOrCreateScore(
+                    treasure.getTreasureHuntScenario().getId(),
+                    user,
+                    team,
+                    gameSessionId
+            ).getScore();
 
-                // Récupérer le score actuel de l'utilisateur
-                TreasureHuntScenario scenario = treasure.getTreasureHuntScenario();
-                Team team = teamId != null ? teamService.findById(teamId).orElse(null) : null;
-                response.put("currentScore", treasureHuntService.getOrCreateScore(
-                        scenario.getId(), user, team, gameSessionId).getScore());
+            boolean isNewLeader = treasureHuntService.isNewLeaderAfterPoints(
+                    treasure.getTreasureHuntScenario().getId(),
+                    gameSessionId,
+                    user.getId(),
+                    score
+            );
+            response.put("treasureId", treasure.getId());
+            response.put("treasureName", treasure.getName());
+            response.put("points", treasure.getPoints());
+            response.put("symbol", treasure.getSymbol());
+            response.put("currentScore", score);
+
+            Long fieldId = gameSessionService.findById(gameSessionId)
+                    .map(session -> session.getField().getId())
+                    .orElse(null);
+
+
+            // 🔄 Envoi WebSocket : trésor trouvé
+            if (fieldId != null) {
+                WebSocketMessage wsMessage = TreasureHuntNotification.treasureFound(
+                        found,
+                        user.getUsername(),
+                        team != null ? team.getName() : null,
+                        points,
+                        score,
+                        isNewLeader,
+                        user.getId(),
+                        gameSessionId
+                );
+                messagingTemplate.convertAndSend("/topic/field/" + fieldId, wsMessage);
+                logger.info("📡 Message WebSocket TREASURE_FOUND envoyé sur /topic/field/{}", fieldId);
             }
         } else {
             Optional<Treasure> treasureOpt = treasureHuntService.findTreasureByQrCode(qrCode);
@@ -248,19 +285,38 @@ public class TreasureHuntController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{treasureHuntId}/scores")
-    public ResponseEntity<Map<String, Object>> getScoreboard(@PathVariable Long treasureHuntId) {
+    @GetMapping("/{scenarioId}/scores")
+    public ResponseEntity<Map<String, Object>> getScoreboard(
+            @PathVariable Long scenarioId,
+            @RequestParam Long gameSessionId) {
         try {
-            Long gameSessionId = gameSessionService.getCurrentGameSessionId();
-            Map<String, Object> scoreboard = treasureHuntService.getScoreboard(treasureHuntId, gameSessionId);
-            return ResponseEntity.ok(scoreboard);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            Optional<Scenario> scenario = scenarioService.findById(scenarioId);
+
+            if (scenario.isEmpty()) {
+                logger.error("Aucun scénario trouvé avec l'ID: {}", scenarioId);
+                return ResponseEntity.notFound().build();
+            }
+
+            if ("treasure_hunt".equals(scenario.get().getType())) {
+                logger.info("Le scénario est un Treasure Hunt");
+                Optional<TreasureHuntScenario> treasureHuntScenario = treasureHuntService.findByScenarioId(scenarioId);
+                if (treasureHuntScenario.isEmpty()) {
+                    logger.error("Aucun TreasureHuntScenario trouvé pour le scénario ID: {}", scenarioId);
+                    return ResponseEntity.notFound().build();
+                }
+                Map<String, Object> scoreboard = treasureHuntService.getScoreboard(treasureHuntScenario.get().getId(), gameSessionId);
+                return ResponseEntity.ok(scoreboard);
+            }
+
+            logger.warn("Type de scénario non supporté pour l'ID: {}", scenarioId);
+            return ResponseEntity.badRequest().build();  // <-- ajout ici aussi au cas où ce n'est pas un type connu
+
         } catch (Exception e) {
             logger.error("Erreur lors de la récupération du tableau des scores", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
 
     @PostMapping("/{treasureHuntId}/lock-scores")
     public ResponseEntity<Void> lockScores(@PathVariable Long treasureHuntId, @RequestBody Map<String, Object> request) {

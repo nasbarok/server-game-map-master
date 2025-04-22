@@ -12,8 +12,16 @@ import java.util.Optional;
 public interface TreasureHuntScoreRepository extends JpaRepository<TreasureHuntScore, Long> {
 
     List<TreasureHuntScore> findByTreasureHuntScenarioId(Long treasureHuntScenarioId);
-
     List<TreasureHuntScore> findByTreasureHuntScenarioIdAndTeamId(Long treasureHuntScenarioId, Long teamId);
+    Optional<TreasureHuntScore> findByTreasureHuntScenarioIdAndUserId(Long treasureHuntScenarioId, Long userId);
+
+    @Query("SELECT ths FROM TreasureHuntScore ths WHERE ths.treasureHuntScenario.id = ?1 ORDER BY ths.score DESC")
+    List<TreasureHuntScore> findByTreasureHuntScenarioIdOrderByScoreDesc(Long treasureHuntScenarioId);
+
+    @Query("SELECT ths FROM TreasureHuntScore ths WHERE ths.treasureHuntScenario.id = ?1 AND ths.team.id IS NOT NULL GROUP BY ths.team.id ORDER BY SUM(ths.score) DESC")
+    List<Object[]> findTeamScoresByTreasureHuntScenarioIdOrderByScoreDesc(Long treasureHuntScenarioId);
+
+    void deleteByTreasureHuntScenarioId(Long treasureHuntScenarioId);
 
     List<TreasureHuntScore> findByGameSessionId(Long gameSessionId);
 
@@ -27,6 +35,6 @@ public interface TreasureHuntScoreRepository extends JpaRepository<TreasureHuntS
 
     @Query("SELECT s FROM TreasureHuntScore s WHERE s.gameSessionId = :gameSessionId ORDER BY s.score DESC")
     List<TreasureHuntScore> findTopScoresByGameSessionId(Long gameSessionId);
-
+    @Query("SELECT s FROM TreasureHuntScore s WHERE s.treasureHuntScenario.id = :treasureHuntScenarioId AND s.gameSessionId = :gameSessionId ORDER BY s.score DESC")
     List<TreasureHuntScore> findByTreasureHuntScenarioIdAndGameSessionId(Long treasureHuntScenarioId, Long gameSessionId);
 }

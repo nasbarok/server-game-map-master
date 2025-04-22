@@ -5,6 +5,7 @@ import com.airsoft.gamemapmaster.model.Scenario;
 import com.airsoft.gamemapmaster.repository.ScenarioRepository;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.service.TreasureHuntService;
 import com.airsoft.gamemapmaster.service.ScenarioService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ public class ScenarioServiceImpl implements ScenarioService {
     private ScenarioRepository scenarioRepository;
 
     @Autowired
+    @Lazy
     private TreasureHuntService treasureHuntService;
 
     @Override

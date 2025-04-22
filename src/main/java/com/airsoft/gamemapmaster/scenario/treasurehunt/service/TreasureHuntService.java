@@ -34,7 +34,7 @@ public interface TreasureHuntService {
     List<TreasureFound> findTreasuresFoundByUserId(Long userId);
     List<TreasureFound> findTreasuresFoundByTeamId(Long teamId);
     List<TreasureFound> findTreasuresFoundByGameSessionId(Long gameSessionId);
-    boolean recordTreasureFound(String qrCode, Long userId, Long teamId, Long gameSessionId);
+    Optional<TreasureFound> recordTreasureFound(String qrCode, Long userId, Long teamId, Long gameSessionId);
 
     // Méthodes pour TreasureHuntScore
     TreasureHuntScore getOrCreateScore(Long treasureHuntScenarioId, User user, Team team, Long gameSessionId);
@@ -54,4 +54,5 @@ public interface TreasureHuntService {
     void deleteTreasureHuntScenarioById(Long id);
 
     void deleteTreasure(Treasure treasure);
+    boolean isNewLeaderAfterPoints(Long id, Long gameSessionId, Long id1, int score);
 }

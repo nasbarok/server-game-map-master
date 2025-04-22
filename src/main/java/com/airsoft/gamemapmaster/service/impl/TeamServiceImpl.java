@@ -96,4 +96,9 @@ public class TeamServiceImpl implements TeamService {
     public List<Team> findTeamsByMap(Long mapId) {
         return teamRepository.findByGameMapId(mapId);
     }
+
+    @Override
+    public Optional<Team> findTeamByUserId(Long userId) {
+        return teamRepository.findByMembersId(userId);
+    }
 }

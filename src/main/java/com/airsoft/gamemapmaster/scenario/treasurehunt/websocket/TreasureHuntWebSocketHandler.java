@@ -2,6 +2,7 @@ package com.airsoft.gamemapmaster.scenario.treasurehunt.websocket;
 
 import com.airsoft.gamemapmaster.scenario.treasurehunt.model.TreasureFound;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.model.TreasureHuntNotification;
+import com.airsoft.gamemapmaster.websocket.WebSocketMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,14 +22,14 @@ public class TreasureHuntWebSocketHandler {
      * Notifie tous les clients connectés qu'un trésor a été trouvé
      */
     public void notifyTreasureFound(TreasureFound treasureFound, String username, String teamName,
-                                    int points, int totalScore, boolean isNewLeader) {
+                                    int points, int totalScore, boolean isNewLeader,long senderId,long gameSessionId) {
         try {
             Long scenarioId = treasureFound.getTreasure().getTreasureHuntScenario().getScenario().getId();
 
-            TreasureHuntNotification notification = TreasureHuntNotification.treasureFound(
-                    treasureFound, username, teamName, points, totalScore, isNewLeader);
+            WebSocketMessage notification = TreasureHuntNotification.treasureFound(
+                    treasureFound, username, teamName, points, totalScore, isNewLeader,senderId, gameSessionId);
 
-            messagingTemplate.convertAndSend("/topic/game/" + scenarioId, notification);
+            messagingTemplate.convertAndSend("/topic/field/" + gameSessionId, notification);
 
             logger.info("Notification envoyée: trésor trouvé par {} ({})", username, teamName);
         } catch (Exception e) {

@@ -1,14 +1,17 @@
 package com.airsoft.gamemapmaster.model;
 
 import javax.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "game_session_participants")
-@Getter
-@Setter
 public class GameSessionParticipant {
 
     @Id
@@ -17,18 +20,20 @@ public class GameSessionParticipant {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "game_session_id", nullable = false)
+    @JsonBackReference // empêche la récursion quand on serialize depuis GameSession
     private GameSession gameSession;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
-    private String userUsername;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
     private Team team;
+
+    @Column(nullable = false)
+    private String userUsername;
+
 
     @Column
     private String teamName;
@@ -47,4 +52,11 @@ public class GameSessionParticipant {
 
     @Column
     private Long scoreId; // ID vers la table spécifique de score
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

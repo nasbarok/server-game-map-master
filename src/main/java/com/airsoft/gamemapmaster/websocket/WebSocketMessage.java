@@ -1,9 +1,10 @@
 package com.airsoft.gamemapmaster.websocket;
 
-import com.airsoft.gamemapmaster.model.ConnectedPlayer;
-import com.airsoft.gamemapmaster.model.Field;
-import com.airsoft.gamemapmaster.model.Team;
-import com.airsoft.gamemapmaster.model.User;
+import com.airsoft.gamemapmaster.model.*;
+import com.airsoft.gamemapmaster.model.DTO.GameSessionDTO;
+import com.airsoft.gamemapmaster.model.DTO.GameSessionParticipantDTO;
+import com.airsoft.gamemapmaster.model.DTO.GameSessionScenarioDTO;
+import com.airsoft.gamemapmaster.scenario.treasurehunt.model.Treasure;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -103,5 +104,143 @@ public class WebSocketMessage {
                 System.currentTimeMillis()
         );
     }
+
+    public static WebSocketMessage gameSessionStarted(GameSession session, Long senderId) {
+
+        GameSessionDTO gameSessionDTO = GameSessionDTO.fromEntity(session);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("id", gameSessionDTO.getId());
+        payload.put("gameMap", gameSessionDTO.getGameMap()); // sérialisable avec @Json
+        payload.put("field", gameSessionDTO.getField());
+        payload.put("startTime", gameSessionDTO.getStartTime());
+        payload.put("durationMinutes", gameSessionDTO.getDurationMinutes());
+        payload.put("participants", gameSessionDTO.getParticipants()); // doit être sérialisable
+        payload.put("scenarios", gameSessionDTO.getScenarios());       // idem
+
+        return new WebSocketMessage(
+                "GAME_SESSION_STARTED",
+                payload,
+                senderId,
+                System.currentTimeMillis()
+        );
+    }
+
+    public static WebSocketMessage gameSessionEnded(GameSession session, Long senderId) {
+        GameSessionDTO gameSessionDTO = GameSessionDTO.fromEntity(session);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("id", gameSessionDTO.getId());
+        payload.put("endTime", gameSessionDTO.getEndTime());
+        payload.put("field", gameSessionDTO.getField());
+        payload.put("gameMap", gameSessionDTO.getGameMap());
+
+        return new WebSocketMessage(
+                "GAME_SESSION_ENDED",
+                payload,
+                senderId,
+                System.currentTimeMillis()
+        );
+    }
+
+    public static WebSocketMessage participantJoined(GameSessionParticipant participant, Long senderId) {
+        GameSessionParticipantDTO participantDTO = GameSessionParticipantDTO.fromEntity(participant);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("gameSessionId", participant.getGameSession().getId());
+        payload.put("participant", participantDTO);
+
+        return new WebSocketMessage(
+                "PARTICIPANT_JOINED",
+                payload,
+                senderId,
+                System.currentTimeMillis()
+        );
+    }
+
+    public static WebSocketMessage participantLeft(GameSessionParticipant participant, Long senderId) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("gameSessionId", participant.getGameSession().getId());
+        payload.put("userId", participant.getUser().getId());
+        payload.put("username", participant.getUser().getUsername());
+
+        return new WebSocketMessage(
+                "PARTICIPANT_LEFT",
+                payload,
+                senderId,
+                System.currentTimeMillis()
+        );
+    }
+
+
+    public static WebSocketMessage scenarioAdded(GameSessionScenario scenario, Long gameSessionId, Long senderId) {
+        GameSessionScenarioDTO scenarioDTO = GameSessionScenarioDTO.fromEntity(scenario);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("gameSessionId", gameSessionId);
+        payload.put("scenario", scenarioDTO);
+
+        return new WebSocketMessage(
+                "SCENARIO_ADDED",
+                payload,
+                senderId,
+                System.currentTimeMillis()
+        );
+    }
+
+    public static WebSocketMessage scenarioActivated(Long gameSessionId, Long scenarioId, Long senderId) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("gameSessionId", gameSessionId);
+        payload.put("scenarioId", scenarioId);
+
+        return new WebSocketMessage(
+                "SCENARIO_ACTIVATED",
+                payload,
+                senderId,
+                System.currentTimeMillis()
+        );
+    }
+
+    public static WebSocketMessage scenarioDeactivated(Long gameSessionId, Long scenarioId, Long senderId) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("gameSessionId", gameSessionId);
+        payload.put("scenarioId", scenarioId);
+
+        return new WebSocketMessage(
+                "SCENARIO_DEACTIVATED",
+                payload,
+                senderId,
+                System.currentTimeMillis()
+        );
+    }
+
+    public static WebSocketMessage treasureFound(
+            Treasure treasure,
+            User user,
+            Team team,
+            Long gameSessionId,
+            Integer currentScore,
+            Long senderId
+    ) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("gameSessionId", gameSessionId);
+        data.put("treasureId", treasure.getId());
+        data.put("treasureName", treasure.getName());
+        data.put("points", treasure.getPoints());
+        data.put("symbol", treasure.getSymbol());
+        data.put("currentScore", currentScore);
+        data.put("teamId", team != null ? team.getId() : null);
+        data.put("userId", user.getId());
+        data.put("username", user.getUsername());
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "TREASURE_FOUND");
+        payload.put("message", "Un trésor a été trouvé !");
+        payload.put("data", data);
+
+        return new WebSocketMessage(
+                "TREASURE_FOUND",
+                payload,
+                senderId,
+                System.currentTimeMillis()
+        );
+    }
+
 
 }

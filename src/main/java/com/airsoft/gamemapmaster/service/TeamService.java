@@ -15,4 +15,6 @@ public interface TeamService {
     Optional<Team> removeMember(Long teamId, Long userId);
 
     List<Team> findTeamsByMap(Long mapId);
+
+    Optional<Team> findTeamByUserId(Long userId);
 }

@@ -1,5 +1,6 @@
 package com.airsoft.gamemapmaster.scenario.treasurehunt.service.impl;
 
+import com.airsoft.gamemapmaster.model.Scenario;
 import com.airsoft.gamemapmaster.model.Team;
 import com.airsoft.gamemapmaster.model.User;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.model.*;
@@ -20,6 +21,7 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,10 +56,11 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
     private TeamService teamService;
 
     @Autowired
+    @Lazy
     private GameSessionService gameSessionService;
 
     @Autowired
-    private TreasureHuntWebSocketHandler webSocketHandler;
+    private TreasureHuntWebSocketHandler treasureHuntWebSocketHandler;
 
     @Override
     public TreasureHuntScenario saveTreasureHuntScenario(TreasureHuntScenario treasureHuntScenario) {
@@ -83,7 +86,7 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
 
             // Notifier les clients via WebSocket
             Map<String, Object> scoreboard = getScoreboard(treasureHuntScenarioId, gameSessionService.getCurrentGameSessionId());
-            webSocketHandler.updateScoreboard(scenario.getScenario().getId(), scoreboard);
+            treasureHuntWebSocketHandler.updateScoreboard(scenario.getScenario().getId(), scoreboard);
         });
     }
 
@@ -109,7 +112,7 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
 
             // Notifier les clients via WebSocket
             Map<String, Object> scoreboard = getScoreboard(treasureHuntScenarioId, gameSessionId);
-            webSocketHandler.updateScoreboard(scenario.getScenario().getId(), scoreboard);
+            treasureHuntWebSocketHandler.updateScoreboard(scenario.getScenario().getId(), scoreboard);
         }
     }
 
@@ -288,33 +291,34 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
 
     @Override
     @Transactional
-    public boolean recordTreasureFound(String qrCode, Long userId, Long teamId, Long gameSessionId) {
+    public Optional<TreasureFound> recordTreasureFound(String qrCode, Long userId, Long teamId, Long gameSessionId) {
         // Vérifier si le QR code correspond à un trésor
         Optional<Treasure> treasureOpt = treasureRepository.findByQrCode(qrCode);
         if (!treasureOpt.isPresent()) {
             logger.warn("QR code non reconnu: {}", qrCode);
-            return false;
+            return Optional.empty();
         }
 
         Treasure treasure = treasureOpt.get();
-        TreasureHuntScenario scenario = treasure.getTreasureHuntScenario();
+        TreasureHuntScenario treasureHuntScenario = treasure.getTreasureHuntScenario();
+        Scenario scenario = treasureHuntScenario.getScenario();
 
         // Vérifier si le scénario est actif
-        if (!scenario.getActive()) {
+        if (!scenario.isActive()) {
             logger.warn("Le scénario n'est pas actif");
-            return false;
+            return Optional.empty();
         }
 
         // Vérifier si la partie est active
         if (!gameSessionService.isGameSessionActive(gameSessionId)) {
             logger.warn("La partie n'est pas active");
-            return false;
+            return Optional.empty();
         }
 
         // Vérifier si les scores sont verrouillés
-        if (scenario.getScoresLocked()) {
+        if (treasureHuntScenario.getScoresLocked()) {
             logger.warn("Les scores sont verrouillés pour ce scénario");
-            return false;
+            return Optional.empty();
         }
 
         // Vérifier si l'utilisateur a déjà trouvé ce trésor dans cette session
@@ -322,14 +326,14 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
                 treasure.getId(), userId, gameSessionId);
         if (existingFound.isPresent()) {
             logger.warn("L'utilisateur a déjà trouvé ce trésor dans cette session");
-            return false;
+            return Optional.empty();
         }
 
         // Récupérer l'utilisateur et l'équipe
         Optional<User> userOpt = userService.findById(userId);
         if (!userOpt.isPresent()) {
             logger.warn("Utilisateur non trouvé: {}", userId);
-            return false;
+            return Optional.empty();
         }
 
         User user = userOpt.get();
@@ -352,17 +356,17 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
         treasureFoundRepository.save(treasureFound);
 
         // Mettre à jour le score de l'utilisateur
-        TreasureHuntScore userScore = getOrCreateScore(scenario.getId(), user, team, gameSessionId);
+        TreasureHuntScore userScore = getOrCreateScore(treasureHuntScenario.getId(), user, team, gameSessionId);
         userScore.incrementScore(treasure.getPoints());
         treasureHuntScoreRepository.save(userScore);
 
         // Vérifier si l'utilisateur est maintenant en tête
-        boolean isNewLeader = isNewLeaderAfterPoints(scenario.getId(), gameSessionId, user.getId(), userScore.getScore());
+        boolean isNewLeader = isNewLeaderAfterPoints(treasureHuntScenario.getId(), gameSessionId, user.getId(), userScore.getScore());
 
         // Notifier tous les participants via WebSocket
-        webSocketHandler.notifyTreasureFound(treasureFound, user.getUsername(),
+        treasureHuntWebSocketHandler.notifyTreasureFound(treasureFound, user.getUsername(),
                 team != null ? team.getName() : null, treasure.getPoints(),
-                userScore.getScore(), isNewLeader);
+                userScore.getScore(), isNewLeader,userId,gameSessionId);
 
         // Si une équipe est spécifiée, mettre à jour le score de l'équipe
         if (team != null) {
@@ -371,30 +375,32 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
             teamUser.setId(-team.getId()); // ID négatif pour éviter les conflits
             teamUser.setUsername("Team: " + team.getName());
 
-            TreasureHuntScore teamScore = getOrCreateScore(scenario.getId(), teamUser, team, gameSessionId);
+            TreasureHuntScore teamScore = getOrCreateScore(treasureHuntScenario.getId(), teamUser, team, gameSessionId);
             teamScore.incrementScore(treasure.getPoints());
             treasureHuntScoreRepository.save(teamScore);
         }
 
         // Mettre à jour le tableau des scores
-        Map<String, Object> scoreboard = getScoreboard(scenario.getId(), gameSessionId);
-        webSocketHandler.updateScoreboard(scenario.getScenario().getId(), scoreboard);
+        Map<String, Object> scoreboard = getScoreboard(treasureHuntScenario.getId(), gameSessionId);
+        treasureHuntWebSocketHandler.updateScoreboard(treasureHuntScenario.getScenario().getId(), scoreboard);
 
-        return true;
+        return Optional.of(treasureFound);
     }
 
-    private boolean isNewLeaderAfterPoints(Long scenarioId, Long gameSessionId, Long userId, int newScore) {
-        // Vérifier si ce score place le joueur en tête
-        List<TreasureHuntScore> topScores = treasureHuntScoreRepository.findTopScoresByTreasureHuntScenarioIdAndGameSessionId(
-                scenarioId, gameSessionId);
+    @Override
+    public boolean isNewLeaderAfterPoints(Long scenarioId, Long gameSessionId, Long userId, int newScore) {
+        List<TreasureHuntScore> topScores = treasureHuntScoreRepository
+                .findTopScoresByTreasureHuntScenarioIdAndGameSessionId(scenarioId, gameSessionId);
+
         if (topScores.isEmpty()) return true;
 
-        // Exclure le score actuel du joueur
-        Optional<TreasureHuntScore> currentTopScore = topScores.stream()
+        // Trouver le meilleur score des autres joueurs
+        OptionalInt bestOtherScore = topScores.stream()
                 .filter(score -> !score.getUser().getId().equals(userId))
-                .findFirst();
+                .mapToInt(TreasureHuntScore::getScore)
+                .max();
 
-        return !currentTopScore.isPresent() || newScore > currentTopScore.get().getScore();
+        return !bestOtherScore.isPresent() || newScore > bestOtherScore.getAsInt();
     }
 
     @Override
@@ -436,59 +442,53 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
     public Map<String, Object> getScoreboard(Long treasureHuntScenarioId, Long gameSessionId) {
         Map<String, Object> result = new HashMap<>();
 
-        // Récupérer le scénario
+        // 🔍 Vérification du scénario
         Optional<TreasureHuntScenario> scenarioOpt = treasureHuntScenarioRepository.findById(treasureHuntScenarioId);
-        if (!scenarioOpt.isPresent()) {
+        if (scenarioOpt.isEmpty()) {
             throw new IllegalArgumentException("Scénario de chasse au trésor non trouvé: " + treasureHuntScenarioId);
         }
 
         TreasureHuntScenario scenario = scenarioOpt.get();
 
-        // Récupérer tous les scores individuels
-        List<TreasureHuntScore> individualScores = treasureHuntScoreRepository
-                .findTopScoresByTreasureHuntScenarioIdAndGameSessionId(treasureHuntScenarioId, gameSessionId)
-                .stream()
-                .filter(score -> score.getUser().getId() > 0) // Filtrer les utilisateurs réels (pas les équipes)
-                .collect(Collectors.toList());
+        // 📥 Récupération brute de tous les scores
+        List<TreasureHuntScore> allScores = treasureHuntScoreRepository
+                .findByTreasureHuntScenarioIdAndGameSessionId(scenario.getId(), gameSessionId);
 
-        // Transformer les scores en format adapté pour le frontend
-        List<Map<String, Object>> individualScoresList = individualScores.stream().map(score -> {
-            Map<String, Object> scoreMap = new HashMap<>();
-            scoreMap.put("userId", score.getUser().getId());
-            scoreMap.put("username", score.getUser().getUsername());
-            scoreMap.put("score", score.getScore());
-            scoreMap.put("treasuresFound", score.getTreasuresFound());
+        // 🧍 Scores individuels
+        List<Map<String, Object>> individualScoresList = new ArrayList<>();
+        for (TreasureHuntScore score : allScores) {
+            if (score.getUser() != null) {
+                Map<String, Object> scoreMap = new HashMap<>();
+                scoreMap.put("userId", score.getUser().getId());
+                scoreMap.put("username", score.getUser().getUsername());
+                scoreMap.put("score", score.getScore());
+                scoreMap.put("treasuresFound", score.getTreasuresFound());
 
-            if (score.getTeam() != null) {
+                if (score.getTeam() != null) {
+                    scoreMap.put("teamId", score.getTeam().getId());
+                    scoreMap.put("teamName", score.getTeam().getName());
+                }
+
+                individualScoresList.add(scoreMap);
+            }
+        }
+
+        // 👥 Scores d'équipe
+        List<Map<String, Object>> teamScoresList = new ArrayList<>();
+        for (TreasureHuntScore score : allScores) {
+            if (score.getTeam() != null && score.getUser() == null) {
+                Map<String, Object> scoreMap = new HashMap<>();
                 scoreMap.put("teamId", score.getTeam().getId());
                 scoreMap.put("teamName", score.getTeam().getName());
+                scoreMap.put("score", score.getScore());
+                scoreMap.put("treasuresFound", score.getTreasuresFound());
+                teamScoresList.add(scoreMap);
             }
+        }
 
-            return scoreMap;
-        }).collect(Collectors.toList());
-
+        // 📦 Construction du payload
         result.put("individualScores", individualScoresList);
-
-        // récupérer les scores des équipes
-
-        List<TreasureHuntScore> teamScores = treasureHuntScoreRepository
-                .findTopScoresByTreasureHuntScenarioIdAndGameSessionId(treasureHuntScenarioId, gameSessionId)
-                .stream()
-                .filter(score -> score.getUser().getId() < 0) // Filtrer les équipes (ID négatif)
-                .collect(Collectors.toList());
-
-        List<Map<String, Object>> teamScoresList = teamScores.stream().map(score -> {
-            Map<String, Object> scoreMap = new HashMap<>();
-            scoreMap.put("teamId", score.getTeam().getId());
-            scoreMap.put("teamName", score.getTeam().getName());
-            scoreMap.put("score", score.getScore());
-            scoreMap.put("treasuresFound", score.getTreasuresFound());
-            return scoreMap;
-        }).collect(Collectors.toList());
-
         result.put("teamScores", teamScoresList);
-
-        // Ajouter des informations sur le scénario
         result.put("scenarioId", scenario.getId());
         result.put("scenarioName", scenario.getScenario().getName());
         result.put("totalTreasures", scenario.getTotalTreasures());
@@ -497,6 +497,7 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
 
         return result;
     }
+
 
     @Override
     public List<Map<String, Object>> generateQRCodes(Long treasureHuntScenarioId) {
@@ -585,10 +586,10 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
 
             // Notifier les clients via WebSocket
             Map<String, Object> scoreboard = getScoreboard(scenario.getId(), gameSessionId);
-            webSocketHandler.updateScoreboard(scenarioId, scoreboard);
+            treasureHuntWebSocketHandler.updateScoreboard(scenarioId, scoreboard);
 
             // Envoyer une notification de début de partie
-            webSocketHandler.notifyGameEvent(scenarioId, "GAME_START",
+            treasureHuntWebSocketHandler.notifyGameEvent(scenarioId, "GAME_START",
                     "La chasse au trésor commence ! Trouvez les QR codes cachés sur le terrain.");
         }
     }
@@ -605,7 +606,7 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
 
             // Notifier les clients via WebSocket
             Map<String, Object> scoreboard = getScoreboard(scenario.getId(), gameSessionId);
-            webSocketHandler.updateScoreboard(scenarioId, scoreboard);
+            treasureHuntWebSocketHandler.updateScoreboard(scenarioId, scoreboard);
 
             // Déterminer le gagnant
             List<TreasureHuntScore> scores = treasureHuntScoreRepository
@@ -618,12 +619,12 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
                         : winner.getTeam().getName();
 
                 // Envoyer une notification de fin de partie avec le gagnant
-                webSocketHandler.notifyGameEvent(scenarioId, "GAME_END",
+                treasureHuntWebSocketHandler.notifyGameEvent(scenarioId, "GAME_END",
                         "La chasse au trésor est terminée ! " + winnerName +
                                 " remporte la victoire avec " + winner.getScore() + " points !");
             } else {
                 // Envoyer une notification de fin de partie sans gagnant
-                webSocketHandler.notifyGameEvent(scenarioId, "GAME_END",
+                treasureHuntWebSocketHandler.notifyGameEvent(scenarioId, "GAME_END",
                         "La chasse au trésor est terminée !");
             }
         }

@@ -41,12 +41,19 @@ public class ScenarioController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Scenario> getScenarioById(@PathVariable Long id) {
-        return scenarioService.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
+    public ResponseEntity<ScenarioDTO> getScenarioById(@PathVariable Long id) {
+        Optional<Scenario> scenarioOpt = scenarioService.findById(id);
+        if (scenarioOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
 
+        Scenario scenario = scenarioOpt.get();
+        Optional<TreasureHuntScenario> treasureOpt = treasureHuntService.findByScenarioId(scenario.getId());
+        TreasureHuntScenario treasure = treasureOpt.orElse(null);
+
+        ScenarioDTO dto = new ScenarioDTO(scenario, treasure);
+        return ResponseEntity.ok(dto);
+    }
     @PostMapping
     public ResponseEntity<Scenario> createScenario(@RequestBody Scenario scenario) {
         return ResponseEntity.status(HttpStatus.CREATED).body(scenarioService.save(scenario));
