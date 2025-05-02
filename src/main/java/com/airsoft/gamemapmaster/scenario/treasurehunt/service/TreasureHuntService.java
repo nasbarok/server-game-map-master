@@ -55,4 +55,6 @@ public interface TreasureHuntService {
 
     void deleteTreasure(Treasure treasure);
     boolean isNewLeaderAfterPoints(Long id, Long gameSessionId, Long id1, int score);
+
+    Map<String, Object> getScoreboardData(Long gameSessionId, Long id);
 }

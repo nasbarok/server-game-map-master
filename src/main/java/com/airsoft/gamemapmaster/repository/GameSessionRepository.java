@@ -15,4 +15,8 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
     Optional<GameSession> findByIdAndActiveTrue(Long id);
 
     Optional<GameSession> findFirstByFieldIdAndActiveTrueOrderByStartTimeDesc(Long fieldId);
+
+    List<GameSession> findByFieldId(Long fieldId);
+
+    List<GameSession> findByParticipantsUserId(Long userId);
 }

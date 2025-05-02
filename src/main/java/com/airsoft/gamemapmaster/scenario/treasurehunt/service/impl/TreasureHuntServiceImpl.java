@@ -404,6 +404,18 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
     }
 
     @Override
+    public Map<String, Object> getScoreboardData(Long gameSessionId, Long scenarioId) {
+        Optional<TreasureHuntScenario> scenarioOpt = treasureHuntScenarioRepository.findByScenarioId(scenarioId);
+        if (scenarioOpt.isEmpty()) {
+            throw new IllegalArgumentException("Scénario de chasse au trésor introuvable pour scenarioId: " + scenarioId);
+        }
+
+        TreasureHuntScenario scenario = scenarioOpt.get();
+        return getScoreboard(scenario.getId(), gameSessionId);
+    }
+
+
+    @Override
     public TreasureHuntScore getOrCreateScore(Long treasureHuntScenarioId, User user, Team team, Long gameSessionId) {
         Optional<TreasureHuntScore> scoreOpt = treasureHuntScoreRepository.findByTreasureHuntScenarioIdAndUserIdAndGameSessionId(
                 treasureHuntScenarioId, user.getId(), gameSessionId);
