@@ -111,7 +111,7 @@ public class HistoryServiceImpl implements HistoryService {
             scenarioStat.put("scenarioName", gameSessionScenario.getScenario().getName());
 
             // Si c'est un scénario de chasse au trésor, ajouter les statistiques spécifiques
-            if (gameSessionScenario.getScenario().getType().equals("TREASURE_HUNT")) {
+            if (gameSessionScenario.getScenario().getType().equals("treasure_hunt")) {
                 // Récupérer les scores de la chasse au trésor
                 Map<String, Object> treasureHuntStats = treasureHuntService.getScoreboardData(gameSessionId, gameSessionScenario.getScenario().getId());
                 scenarioStat.put("treasureHuntStats", treasureHuntStats);

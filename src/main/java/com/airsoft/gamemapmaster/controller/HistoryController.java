@@ -70,9 +70,9 @@ public class HistoryController {
         }
 
         Field field = fieldOpt.get();
-        if (!field.getOwner().getId().equals(userOpt.get().getId())) {
+      /*  if (!field.getOwner().getId().equals(userOpt.get().getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Vous n'êtes pas autorisé à accéder à ce terrain");
-        }
+        }*/
 
         return ResponseEntity.ok(field);
     }
@@ -87,18 +87,20 @@ public class HistoryController {
         Optional<User> userOpt = userService.findByUsername(username);
 
         if (userOpt.isEmpty()) {
+            log.warn("Utilisateur non trouvé pour le nom d'utilisateur : {}", username);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         Optional<Field> fieldOpt = historyService.getFieldById(fieldId);
         if (fieldOpt.isEmpty()) {
+            log.warn("Terrain non trouvé pour l'ID : {}", fieldId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
         Field field = fieldOpt.get();
-        if (!field.getOwner().getId().equals(userOpt.get().getId())) {
+/*        if (!field.getOwner().getId().equals(userOpt.get().getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+        }*/
 
         List<GameSession> gameSessions = historyService.getGameSessionsByFieldId(fieldId);
         List<GameSessionDTO> gameSessionDTOs = new ArrayList<>();
