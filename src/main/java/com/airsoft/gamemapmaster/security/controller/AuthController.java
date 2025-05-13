@@ -3,7 +3,10 @@ package com.airsoft.gamemapmaster.security.controller;
 import com.airsoft.gamemapmaster.model.User;
 import com.airsoft.gamemapmaster.repository.UserRepository;
 import com.airsoft.gamemapmaster.security.jwt.JwtTokenProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,6 +25,7 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -37,17 +41,29 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequest.getUsername(),
-                        loginRequest.getPassword()
-                )
-        );
+        logger.info("🔐 Tentative de connexion pour l'utilisateur : {}", loginRequest.getUsername());
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = tokenProvider.generateToken(authentication);
-        
-        return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getUsername(),
+                            loginRequest.getPassword()
+                    )
+            );
+
+            logger.info("✅ Authentification réussie pour l'utilisateur : {}", loginRequest.getUsername());
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = tokenProvider.generateToken(authentication);
+
+            logger.info("🔑 Token JWT généré avec succès");
+
+            return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
+
+        } catch (Exception e) {
+            logger.error("❌ Échec de l'authentification pour l'utilisateur : {}", loginRequest.getUsername(), e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login failed");
+        }
     }
 
     @PostMapping("/register")

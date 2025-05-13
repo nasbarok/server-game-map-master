@@ -1,0 +1,36 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1_add_interactive_fields_to_game_map
+      author: nasbarok
+      changes:
+        - addColumn:
+            tableName: game_maps
+            columns:
+              - column:
+                  name: source_address
+                  type: VARCHAR(255)
+              - column:
+                  name: center_latitude
+                  type: DOUBLE
+              - column:
+                  name: center_longitude
+                  type: DOUBLE
+              - column:
+                  name: initial_zoom
+                  type: DOUBLE
+              - column:
+                  name: field_boundary_json
+                  type: TEXT
+                  remarks: Stores the field boundary coordinates as a JSON string
+              - column:
+                  name: map_zones_json
+                  type: TEXT
+                  remarks: Stores map zones as a JSON string
+              - column:
+                  name: map_points_of_interest_json
+                  type: TEXT
+                  remarks: Stores map points of interest as a JSON string
+              - column:
+                  name: background_image_base64
+                  type: LONGTEXT
+                  remarks: Stores a Base64 encoded static background image for the map

@@ -6,3 +6,4 @@ databaseChangeLog:
   - include: { file: db/changelog/05-game-sessions.yaml }
   - include: { file: db/changelog/06-treasure-hunt.yaml }
   - include: { file: db/changelog/07-field-scenarios-history.yaml }
+  - include: { file: db/changelog/08-interactive-map.yaml }

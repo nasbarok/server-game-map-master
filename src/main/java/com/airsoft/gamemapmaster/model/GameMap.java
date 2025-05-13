@@ -42,4 +42,32 @@ public class GameMap {
     @JoinColumn(name = "owner_id")
     private User owner;
 
+    // New fields for interactive map features
+    @Column(name = "source_address")
+    private String sourceAddress;
+
+    @Column(name = "center_latitude")
+    private Double centerLatitude;
+
+    @Column(name = "center_longitude")
+    private Double centerLongitude;
+
+    @Column(name = "initial_zoom")
+    private Double initialZoom;
+
+    @Lob
+    @Column(name = "field_boundary_json", columnDefinition = "TEXT")
+    private String fieldBoundaryJson;
+
+    @Lob
+    @Column(name = "map_zones_json", columnDefinition = "TEXT")
+    private String mapZonesJson;
+
+    @Lob
+    @Column(name = "map_points_of_interest_json", columnDefinition = "TEXT")
+    private String mapPointsOfInterestJson;
+
+    @Lob
+    @Column(name = "background_image_base64", columnDefinition = "LONGTEXT") // Using LONGTEXT for potentially large Base64 strings
+    private String backgroundImageBase64;
 }
