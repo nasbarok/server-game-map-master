@@ -70,4 +70,16 @@ public class GameMap {
     @Lob
     @Column(name = "background_image_base64", columnDefinition = "LONGTEXT") // Using LONGTEXT for potentially large Base64 strings
     private String backgroundImageBase64;
+
+    @Lob
+    @Column(name = "background_bounds_json", columnDefinition = "TEXT") // field for standard map bounds
+    private String backgroundBoundsJson;
+
+    @Lob
+    @Column(name = "satellite_image_base64", columnDefinition = "LONGTEXT") // field for satellite image
+    private String satelliteImageBase64;
+
+    @Lob
+    @Column(name = "satellite_bounds_json", columnDefinition = "TEXT") // field for satellite image bounds
+    private String satelliteBoundsJson;
 }

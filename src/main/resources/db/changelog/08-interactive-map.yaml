@@ -34,3 +34,25 @@ databaseChangeLog:
                   name: background_image_base64
                   type: LONGTEXT
                   remarks: Stores a Base64 encoded static background image for the map
+  - changeSet:
+      id: 20250514-add-dual-background-fields-to-game-maps
+      author: nasbarok
+      changes:
+        - addColumn:
+            tableName: game_maps
+            columns:
+              - column:
+                  name: background_bounds_json
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: satellite_image_base64
+                  type: LONGTEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: satellite_bounds_json
+                  type: TEXT
+                  constraints:
+                    nullable: true
