@@ -81,6 +81,16 @@ public class GameMapController {
         existingMap.setDescription(gameMapInput.getDescription());
         existingMap.setOwner(gameMapInput.getOwner());
         existingMap.setSourceAddress(gameMapInput.getSourceAddress());
+        existingMap.setCenterLatitude(gameMapInput.getCenterLatitude());
+        existingMap.setCenterLongitude(gameMapInput.getCenterLongitude());
+        existingMap.setInitialZoom(gameMapInput.getInitialZoom());
+        existingMap.setFieldBoundaryJson(gameMapInput.getFieldBoundaryJson());
+        existingMap.setMapZonesJson(gameMapInput.getMapZonesJson());
+        existingMap.setMapPointsOfInterestJson(gameMapInput.getMapPointsOfInterestJson());
+        existingMap.setBackgroundImageBase64(gameMapInput.getBackgroundImageBase64());
+        existingMap.setBackgroundBoundsJson(gameMapInput.getBackgroundBoundsJson());
+        existingMap.setSatelliteImageBase64(gameMapInput.getSatelliteImageBase64());
+        existingMap.setSatelliteBoundsJson(gameMapInput.getSatelliteBoundsJson());
 
         // ✅ Mise à jour sécurisée des scénarios
         if (existingMap.getScenarios() != null) {
