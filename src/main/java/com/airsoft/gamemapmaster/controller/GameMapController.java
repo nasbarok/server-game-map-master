@@ -49,11 +49,17 @@ public class GameMapController {
     public ResponseEntity<GameMap> createMap(@RequestBody GameMap gameMap, @AuthenticationPrincipal UserDetails userDetails) {
         Optional<User> owner = userService.findByUsername(userDetails.getUsername()); // Récupère l'utilisateur depuis ton UserService
         if (owner.isEmpty()) {
+            logger.warn(" [GameMapController] Tentative de création de carte sans utilisateur authentifié.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         gameMap.setOwner(owner.get()); // Associe le terrain au propriétaire connecté
         gameMap.setCreator(owner.get());
+
+        logger.info("Création de carte demandée par : {}, avec adresse source : {}", owner.get().getUsername(), gameMap.getSourceAddress());
+
         GameMap saved = gameMapService.save(gameMap);
+        logger.info("Carte créée avec succès (ID: {}) avec adresse source sauvegardée : {}", saved.getId(), saved.getSourceAddress());
+
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
@@ -61,15 +67,21 @@ public class GameMapController {
     public ResponseEntity<GameMap> updateMap(@PathVariable Long id, @RequestBody GameMap gameMapInput) {
         Optional<GameMap> existingOpt = gameMapService.findById(id);
         if (existingOpt.isEmpty()) {
+            logger.warn("Carte introuvable avec ID : {}", id);
             return ResponseEntity.notFound().build();
         }
 
         GameMap existingMap = existingOpt.get();
 
+        logger.info("Mise à jour de la carte (ID: {}). Ancienne adresse : {}, Nouvelle adresse : {}",
+                id, existingMap.getSourceAddress(), gameMapInput.getSourceAddress());
+
         // 🔄 Mise à jour des champs de base
         existingMap.setName(gameMapInput.getName());
         existingMap.setDescription(gameMapInput.getDescription());
         existingMap.setOwner(gameMapInput.getOwner());
+        existingMap.setSourceAddress(gameMapInput.getSourceAddress());
+
         // ✅ Mise à jour sécurisée des scénarios
         if (existingMap.getScenarios() != null) {
             existingMap.getScenarios().clear();
@@ -90,6 +102,8 @@ public class GameMapController {
         }
 
         GameMap saved = gameMapService.save(existingMap);
+
+        logger.info("Carte mise à jour avec succès (ID: {}) avec adresse source : {}", saved.getId(), saved.getSourceAddress());
 
         return ResponseEntity.ok(saved);
     }
