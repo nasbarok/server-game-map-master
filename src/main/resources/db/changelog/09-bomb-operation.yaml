@@ -1,0 +1,312 @@
+databaseChangeLog:
+  - changeSet:
+      id: bomb-operation-scenario-tables
+      author: manus
+      changes:
+        - createTable:
+            tableName: bomb_operation_scenarios
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: scenario_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bomb_operation_scenario_scenario
+                    references: scenarios(id)
+              - column:
+                  name: round_duration
+                  type: int
+                  defaultValue: 300
+                  constraints:
+                    nullable: false
+              - column:
+                  name: bomb_timer
+                  type: int
+                  defaultValue: 45
+                  constraints:
+                    nullable: false
+              - column:
+                  name: defuse_time
+                  type: int
+                  defaultValue: 10
+                  constraints:
+                    nullable: false
+              - column:
+                  name: max_rounds
+                  type: int
+                  defaultValue: 10
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active_sites
+                  type: int
+                  defaultValue: 2
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attack_team_name
+                  type: varchar(255)
+                  defaultValue: "Terroriste"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: defense_team_name
+                  type: varchar(255)
+                  defaultValue: "Anti-terroriste"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: bomb_sites
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: latitude
+                  type: double
+                  constraints:
+                    nullable: false
+              - column:
+                  name: longitude
+                  type: double
+                  constraints:
+                    nullable: false
+              - column:
+                  name: radius
+                  type: double
+                  defaultValue: 10.0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: bomb_operation_scenario_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bomb_site_scenario
+                    references: bomb_operation_scenarios(id)
+
+        - createTable:
+            tableName: bomb_operation_sessions
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: bomb_operation_scenario_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bomb_operation_session_scenario
+                    references: bomb_operation_scenarios(id)
+              - column:
+                  name: game_session_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: current_round
+                  type: int
+                  defaultValue: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attack_team_score
+                  type: int
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: defense_team_score
+                  type: int
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: game_state
+                  type: varchar(50)
+                  defaultValue: "WAITING"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: round_start_time
+                  type: datetime
+              - column:
+                  name: bomb_planted_time
+                  type: datetime
+              - column:
+                  name: defuse_start_time
+                  type: datetime
+              - column:
+                  name: created_at
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_updated
+                  type: datetime
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: bomb_operation_active_sites
+            columns:
+              - column:
+                  name: bomb_operation_session_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bomb_operation_active_sites_session
+                    references: bomb_operation_sessions(id)
+              - column:
+                  name: bomb_site_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: bomb_operation_player_states
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: bomb_operation_session_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bomb_operation_player_state_session
+                    references: bomb_operation_sessions(id)
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bomb_operation_player_state_user
+                    references: users(id)
+              - column:
+                  name: team
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_alive
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: has_defuse_kit
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_updated
+                  type: datetime
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: bomb_operation_scores
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: bomb_operation_scenario_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bomb_operation_score_scenario
+                    references: bomb_operation_scenarios(id)
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bomb_operation_score_user
+                    references: users(id)
+              - column:
+                  name: team_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_bomb_operation_score_team
+                    references: teams(id)
+              - column:
+                  name: game_session_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rounds_won
+                  type: int
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: bombs_planted
+                  type: int
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: bombs_defused
+                  type: int
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_updated
+                  type: datetime
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: bomb_operation_scores
+            columnNames: bomb_operation_scenario_id, user_id, game_session_id
+            constraintName: uk_bomb_operation_score
