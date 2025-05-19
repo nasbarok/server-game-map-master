@@ -26,16 +26,10 @@ public class BombOperationScenario {
     private Scenario scenario;
 
     @Column(nullable = false)
-    private Integer roundDuration = 300; // Durée d'un round en secondes
-
-    @Column(nullable = false)
     private Integer bombTimer = 45; // Temps avant explosion de la bombe
 
     @Column(nullable = false)
     private Integer defuseTime = 10; // Temps pour désamorcer
-
-    @Column(nullable = false)
-    private Integer maxRounds = 10; // Nombre maximum de rounds
 
     @Column(nullable = false)
     private Integer activeSites = 2; // Nombre de sites actifs par round
@@ -48,6 +42,12 @@ public class BombOperationScenario {
 
     @Column(nullable = false)
     private Boolean active = false;
+
+    @Column(nullable = false)
+    private Boolean showZones = true; // Afficher les zones sur la carte
+
+    @Column(nullable = false)
+    private Boolean showPointsOfInterest = true; // Afficher les points d'intérêt sur la carte
 
     @JsonIgnore
     @OneToMany(mappedBy = "bombOperationScenario", cascade = CascadeType.ALL, orphanRemoval = true)

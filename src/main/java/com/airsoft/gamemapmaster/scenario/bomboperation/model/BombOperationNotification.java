@@ -240,31 +240,6 @@ public class BombOperationNotification {
     public void setData(Object data) {
         this.data = data;
     }
-
-    public static WebSocketMessage roundStart(BombOperationSession session, Long senderId) {
-        BombOperationNotification notification = new BombOperationNotification();
-        notification.setType("BOMB_ROUND_START");
-        notification.setMessage("Round " + session.getCurrentRound() + " commence !");
-
-        RoundStartData data = new RoundStartData();
-        data.setRoundNumber(session.getCurrentRound());
-        data.setAttackScore(session.getAttackTeamScore());
-        data.setDefenseScore(session.getDefenseTeamScore());
-        data.setActiveBombSiteIds(session.getActiveBombSiteIds());
-        data.setRoundDuration(session.getBombOperationScenario().getRoundDuration());
-        data.setGameSessionId(session.getGameSessionId());
-        data.setScenarioId(session.getBombOperationScenario().getScenario().getId());
-
-        notification.setData(data);
-
-        return new WebSocketMessage(
-                notification.getType(),
-                notification,
-                senderId,
-                System.currentTimeMillis()
-        );
-    }
-
     public static WebSocketMessage bombPlanted(BombOperationSession session, BombSite bombSite, User user, Long senderId) {
         BombOperationNotification notification = new BombOperationNotification();
         notification.setType("BOMB_PLANTED");

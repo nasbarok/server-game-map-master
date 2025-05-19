@@ -33,13 +33,13 @@ public class BombOperationScenarioController {
     @PostMapping
     public ResponseEntity<BombOperationScenarioDto> createBombOperationScenario(
             @RequestParam Long scenarioId,
-            @RequestParam(required = false) Integer roundDuration,
             @RequestParam(required = false) Integer bombTimer,
             @RequestParam(required = false) Integer defuseTime,
-            @RequestParam(required = false) Integer maxRounds,
             @RequestParam(required = false) Integer activeSites,
             @RequestParam(required = false) String attackTeamName,
-            @RequestParam(required = false) String defenseTeamName) {
+            @RequestParam(required = false) String defenseTeamName,
+            @RequestParam(required = false) Boolean showZones,
+            @RequestParam(required = false) Boolean showPointsOfInterest) {
 
         logger.info("Création d'un nouveau scénario d'Opération Bombe pour le scénario ID: {}", scenarioId);
 
@@ -52,7 +52,7 @@ public class BombOperationScenarioController {
         Scenario scenario = scenarioOpt.get();
 
         BombOperationScenario bombOperationScenario = bombOperationScenarioService.createBombOperationScenario(
-                scenario, roundDuration, bombTimer, defuseTime, maxRounds, activeSites, attackTeamName, defenseTeamName);
+                scenario, bombTimer, defuseTime, activeSites, attackTeamName, defenseTeamName, showZones, showPointsOfInterest);
 
         return new ResponseEntity<>(convertToDto(bombOperationScenario), HttpStatus.CREATED);
     }
@@ -60,18 +60,18 @@ public class BombOperationScenarioController {
     @PutMapping("/{id}")
     public ResponseEntity<BombOperationScenarioDto> updateBombOperationScenario(
             @PathVariable Long id,
-            @RequestParam(required = false) Integer roundDuration,
             @RequestParam(required = false) Integer bombTimer,
             @RequestParam(required = false) Integer defuseTime,
-            @RequestParam(required = false) Integer maxRounds,
             @RequestParam(required = false) Integer activeSites,
             @RequestParam(required = false) String attackTeamName,
-            @RequestParam(required = false) String defenseTeamName) {
+            @RequestParam(required = false) String defenseTeamName,
+            @RequestParam(required = false) Boolean showZones,
+            @RequestParam(required = false) Boolean showPointsOfInterest) {
 
         logger.info("Mise à jour du scénario d'Opération Bombe ID: {}", id);
 
         BombOperationScenario bombOperationScenario = bombOperationScenarioService.updateBombOperationScenario(
-                id, roundDuration, bombTimer, defuseTime, maxRounds, activeSites, attackTeamName, defenseTeamName);
+                id, bombTimer, defuseTime, activeSites, attackTeamName, defenseTeamName, showZones, showPointsOfInterest);
 
         return new ResponseEntity<>(convertToDto(bombOperationScenario), HttpStatus.OK);
     }
@@ -199,14 +199,14 @@ public class BombOperationScenarioController {
         BombOperationScenarioDto dto = new BombOperationScenarioDto();
         dto.setId(bombOperationScenario.getId());
         dto.setScenarioId(bombOperationScenario.getScenario().getId());
-        dto.setRoundDuration(bombOperationScenario.getRoundDuration());
         dto.setBombTimer(bombOperationScenario.getBombTimer());
         dto.setDefuseTime(bombOperationScenario.getDefuseTime());
-        dto.setMaxRounds(bombOperationScenario.getMaxRounds());
         dto.setActiveSites(bombOperationScenario.getActiveSites());
         dto.setAttackTeamName(bombOperationScenario.getAttackTeamName());
         dto.setDefenseTeamName(bombOperationScenario.getDefenseTeamName());
         dto.setActive(bombOperationScenario.getActive());
+        dto.setShowZones(bombOperationScenario.getShowZones());
+        dto.setShowPointsOfInterest(bombOperationScenario.getShowPointsOfInterest());
         return dto;
     }
 

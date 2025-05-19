@@ -99,57 +99,6 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
                     return new BombOperationException.SessionNotFoundException(gameSessionId, "game session");
                 });
     }
-
-    @Override
-    @Transactional
-    public BombOperationSession startRound(Long sessionId) {
-        logger.info("Démarrage d'un nouveau round pour la session d'Opération Bombe ID: {}", sessionId);
-
-        BombOperationSession session = getSessionById(sessionId);
-
-        if (session.getGameState() != BombOperationState.WAITING && session.getGameState() != BombOperationState.ROUND_OVER) {
-            logger.error("État de jeu invalide pour démarrer un round: {}", session.getGameState());
-            throw new BombOperationException.InvalidGameStateException(
-                    session.getGameState().toString(),
-                    BombOperationState.WAITING + " ou " + BombOperationState.ROUND_OVER);
-        }
-
-        // Sélectionner aléatoirement les sites de bombe actifs
-        List<BombSite> allSites = bombSiteRepository.findByBombOperationScenarioId(session.getBombOperationScenario().getId());
-
-        if (allSites.size() < session.getBombOperationScenario().getActiveSites()) {
-            logger.error("Pas assez de sites de bombe définis pour ce scénario. Requis: {}, Disponibles: {}",
-                    session.getBombOperationScenario().getActiveSites(), allSites.size());
-            throw new BombOperationException("Pas assez de sites de bombe définis pour ce scénario");
-        }
-
-        // Mélanger la liste et prendre les n premiers sites
-        Collections.shuffle(allSites);
-        List<BombSite> activeSites = allSites.subList(0, session.getBombOperationScenario().getActiveSites());
-
-        // Mettre à jour la session
-        session.setActiveBombSiteIds(activeSites.stream().map(BombSite::getId).collect(Collectors.toList()));
-        session.setGameState(BombOperationState.ROUND_ACTIVE);
-        session.setRoundStartTime(LocalDateTime.now());
-        session.setBombPlantedTime(null);
-        session.setDefuseStartTime(null);
-
-        session = sessionRepository.save(session);
-        logger.info("Round démarré pour la session d'Opération Bombe ID: {}", session.getId());
-
-        // Envoyer une notification WebSocket
-        User systemUser = userRepository.findById(1L).orElse(null); // Utilisateur système
-        Long senderId = systemUser != null ? systemUser.getId() : 0L;
-
-        WebSocketMessage message = new WebSocketMessage();
-        bombOperationWebSocketNotifier.sendToGameSession(
-                session.getGameSessionId(),
-                BombOperationNotification.roundStart(session, senderId)
-        );
-
-        return session;
-    }
-
     @Override
     @Transactional
     public BombOperationSession plantBomb(Long sessionId, Long userId, Long siteId, Double latitude, Double longitude) {
@@ -381,50 +330,6 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
 
         // Terminer le round avec victoire de l'équipe d'attaque
         return endRound(sessionId, "ATTACK", "Bombe explosée");
-    }
-
-    @Override
-    @Transactional
-    public BombOperationSession endRound(Long sessionId, String winnerTeam, String reason) {
-        logger.info("Fin du round pour la session ID: {} avec victoire de l'équipe: {} pour la raison: {}",
-                sessionId, winnerTeam, reason);
-
-        BombOperationSession session = getSessionById(sessionId);
-
-        // Mettre à jour les scores
-        if ("ATTACK".equals(winnerTeam)) {
-            session.setAttackTeamScore(session.getAttackTeamScore() + 1);
-        } else if ("DEFENSE".equals(winnerTeam)) {
-            session.setDefenseTeamScore(session.getDefenseTeamScore() + 1);
-        }
-
-        // Mettre à jour l'état de la session
-        session.setGameState(BombOperationState.ROUND_OVER);
-
-        session = sessionRepository.save(session);
-        logger.info("Round terminé pour la session ID: {}", sessionId);
-
-        // Envoyer une notification WebSocket
-        User systemUser = userRepository.findById(1L).orElse(null); // Utilisateur système
-        Long senderId = systemUser != null ? systemUser.getId() : 0L;
-
-        bombOperationWebSocketNotifier.sendToGameSession(
-                session.getGameSessionId(),
-                BombOperationNotification.roundEnd(session, winnerTeam, reason, senderId)
-        );
-
-        // Vérifier si la partie est terminée
-        if (session.getCurrentRound() >= session.getBombOperationScenario().getMaxRounds() ||
-                session.getAttackTeamScore() > session.getBombOperationScenario().getMaxRounds() / 2 ||
-                session.getDefenseTeamScore() > session.getBombOperationScenario().getMaxRounds() / 2) {
-            return endGame(sessionId);
-        }
-
-        // Préparer le prochain round
-        session.setCurrentRound(session.getCurrentRound() + 1);
-        session = sessionRepository.save(session);
-
-        return session;
     }
 
     @Override

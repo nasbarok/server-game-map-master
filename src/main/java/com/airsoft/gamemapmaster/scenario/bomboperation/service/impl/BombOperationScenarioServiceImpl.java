@@ -29,22 +29,18 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
     @Transactional
     public BombOperationScenario createBombOperationScenario(
             Scenario scenario,
-            Integer roundDuration,
             Integer bombTimer,
             Integer defuseTime,
-            Integer maxRounds,
             Integer activeSites,
             String attackTeamName,
-            String defenseTeamName
+            String defenseTeamName,
+            Boolean showZones,
+            Boolean showPointsOfInterest
     ) {
         logger.info("Création d'un nouveau scénario d'Opération Bombe pour le scénario ID: {}", scenario.getId());
 
         BombOperationScenario bombOperationScenario = new BombOperationScenario();
         bombOperationScenario.setScenario(scenario);
-
-        if (roundDuration != null) {
-            bombOperationScenario.setRoundDuration(roundDuration);
-        }
 
         if (bombTimer != null) {
             bombOperationScenario.setBombTimer(bombTimer);
@@ -52,10 +48,6 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
 
         if (defuseTime != null) {
             bombOperationScenario.setDefuseTime(defuseTime);
-        }
-
-        if (maxRounds != null) {
-            bombOperationScenario.setMaxRounds(maxRounds);
         }
 
         if (activeSites != null) {
@@ -68,6 +60,14 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
 
         if (defenseTeamName != null && !defenseTeamName.isEmpty()) {
             bombOperationScenario.setDefenseTeamName(defenseTeamName);
+        }
+
+        if (showZones != null) {
+            bombOperationScenario.setShowZones(showZones);
+        }
+
+        if (showPointsOfInterest != null) {
+            bombOperationScenario.setShowPointsOfInterest(showPointsOfInterest);
         }
 
         bombOperationScenario = bombOperationScenarioRepository.save(bombOperationScenario);
@@ -80,21 +80,17 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
     @Transactional
     public BombOperationScenario updateBombOperationScenario(
             Long id,
-            Integer roundDuration,
             Integer bombTimer,
             Integer defuseTime,
-            Integer maxRounds,
             Integer activeSites,
             String attackTeamName,
-            String defenseTeamName
+            String defenseTeamName,
+            Boolean showZones,
+            Boolean showPointsOfInterest
     ) {
         logger.info("Mise à jour du scénario d'Opération Bombe ID: {}", id);
 
         BombOperationScenario bombOperationScenario = getBombOperationScenarioById(id);
-
-        if (roundDuration != null) {
-            bombOperationScenario.setRoundDuration(roundDuration);
-        }
 
         if (bombTimer != null) {
             bombOperationScenario.setBombTimer(bombTimer);
@@ -102,10 +98,6 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
 
         if (defuseTime != null) {
             bombOperationScenario.setDefuseTime(defuseTime);
-        }
-
-        if (maxRounds != null) {
-            bombOperationScenario.setMaxRounds(maxRounds);
         }
 
         if (activeSites != null) {
@@ -118,6 +110,14 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
 
         if (defenseTeamName != null && !defenseTeamName.isEmpty()) {
             bombOperationScenario.setDefenseTeamName(defenseTeamName);
+        }
+
+        if (showZones != null) {
+            bombOperationScenario.setShowZones(showZones);
+        }
+
+        if (showPointsOfInterest != null) {
+            bombOperationScenario.setShowPointsOfInterest(showPointsOfInterest);
         }
 
         bombOperationScenario = bombOperationScenarioRepository.save(bombOperationScenario);

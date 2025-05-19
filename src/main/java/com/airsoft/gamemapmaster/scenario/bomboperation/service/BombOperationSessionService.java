@@ -30,12 +30,6 @@ public interface BombOperationSessionService {
      */
     BombOperationSession getSessionByGameSessionId(Long gameSessionId);
 
-    /**
-     * Démarre un nouveau round
-     * @param sessionId ID de la session
-     * @return La session mise à jour
-     */
-    BombOperationSession startRound(Long sessionId);
 
     /**
      * Pose une bombe sur un site
@@ -73,14 +67,6 @@ public interface BombOperationSessionService {
      */
     BombOperationSession explodeBomb(Long sessionId);
 
-    /**
-     * Termine le round actuel
-     * @param sessionId ID de la session
-     * @param winnerTeam Équipe gagnante ("ATTACK" ou "DEFENSE")
-     * @param reason Raison de la fin du round
-     * @return La session mise à jour
-     */
-    BombOperationSession endRound(Long sessionId, String winnerTeam, String reason);
 
     /**
      * Termine la partie

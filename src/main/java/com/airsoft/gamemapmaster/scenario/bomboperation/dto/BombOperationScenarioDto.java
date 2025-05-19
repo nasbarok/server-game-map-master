@@ -1,15 +1,16 @@
 package com.airsoft.gamemapmaster.scenario.bomboperation.dto;
+
 public class BombOperationScenarioDto {
     private Long id;
     private Long scenarioId;
-    private Integer roundDuration;
     private Integer bombTimer;
     private Integer defuseTime;
-    private Integer maxRounds;
     private Integer activeSites;
     private String attackTeamName;
     private String defenseTeamName;
     private Boolean active;
+    private Boolean showZones;
+    private Boolean showPointsOfInterest;
 
     public Long getId() {
         return id;
@@ -27,14 +28,6 @@ public class BombOperationScenarioDto {
         this.scenarioId = scenarioId;
     }
 
-    public Integer getRoundDuration() {
-        return roundDuration;
-    }
-
-    public void setRoundDuration(Integer roundDuration) {
-        this.roundDuration = roundDuration;
-    }
-
     public Integer getBombTimer() {
         return bombTimer;
     }
@@ -49,14 +42,6 @@ public class BombOperationScenarioDto {
 
     public void setDefuseTime(Integer defuseTime) {
         this.defuseTime = defuseTime;
-    }
-
-    public Integer getMaxRounds() {
-        return maxRounds;
-    }
-
-    public void setMaxRounds(Integer maxRounds) {
-        this.maxRounds = maxRounds;
     }
 
     public Integer getActiveSites() {
@@ -89,5 +74,21 @@ public class BombOperationScenarioDto {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public Boolean getShowZones() {
+        return showZones;
+    }
+
+    public void setShowZones(Boolean showZones) {
+        this.showZones = showZones;
+    }
+
+    public Boolean getShowPointsOfInterest() {
+        return showPointsOfInterest;
+    }
+
+    public void setShowPointsOfInterest(Boolean showPointsOfInterest) {
+        this.showPointsOfInterest = showPointsOfInterest;
     }
 }

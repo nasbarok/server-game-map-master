@@ -310,3 +310,30 @@ databaseChangeLog:
             tableName: bomb_operation_scores
             columnNames: bomb_operation_scenario_id, user_id, game_session_id
             constraintName: uk_bomb_operation_score
+  - changeSet:
+      id: bomb-operation-scenario-update-visibility
+      author: manus
+      changes:
+        - dropColumn:
+            tableName: bomb_operation_scenarios
+            columns:
+              - column:
+                  name: round_duration
+              - column:
+                  name: max_rounds
+
+        - addColumn:
+            tableName: bomb_operation_scenarios
+            columns:
+              - column:
+                  name: show_zones
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: show_points_of_interest
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false

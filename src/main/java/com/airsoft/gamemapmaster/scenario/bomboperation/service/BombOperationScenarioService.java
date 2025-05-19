@@ -11,47 +11,47 @@ public interface BombOperationScenarioService {
     /**
      * Crée un nouveau scénario d'Opération Bombe
      * @param scenario Le scénario de base
-     * @param roundDuration Durée d'un round en secondes
      * @param bombTimer Temps avant explosion de la bombe en secondes
      * @param defuseTime Temps pour désamorcer en secondes
-     * @param maxRounds Nombre maximum de rounds
      * @param activeSites Nombre de sites actifs par round
      * @param attackTeamName Nom de l'équipe d'attaque
      * @param defenseTeamName Nom de l'équipe de défense
+     * @param showZones Indique si les zones doivent être affichées sur la carte
+     * @param showPointsOfInterest Indique si les points d'intérêt doivent être affichés sur la carte
      * @return Le scénario créé
      */
     BombOperationScenario createBombOperationScenario(
             Scenario scenario,
-            Integer roundDuration,
             Integer bombTimer,
             Integer defuseTime,
-            Integer maxRounds,
             Integer activeSites,
             String attackTeamName,
-            String defenseTeamName
+            String defenseTeamName,
+            Boolean showZones,
+            Boolean showPointsOfInterest
     );
 
     /**
      * Met à jour un scénario d'Opération Bombe existant
      * @param id ID du scénario à mettre à jour
-     * @param roundDuration Durée d'un round en secondes
      * @param bombTimer Temps avant explosion de la bombe en secondes
      * @param defuseTime Temps pour désamorcer en secondes
-     * @param maxRounds Nombre maximum de rounds
      * @param activeSites Nombre de sites actifs par round
      * @param attackTeamName Nom de l'équipe d'attaque
      * @param defenseTeamName Nom de l'équipe de défense
+     * @param showZones Indique si les zones doivent être affichées sur la carte
+     * @param showPointsOfInterest Indique si les points d'intérêt doivent être affichés sur la carte
      * @return Le scénario mis à jour
      */
     BombOperationScenario updateBombOperationScenario(
             Long id,
-            Integer roundDuration,
             Integer bombTimer,
             Integer defuseTime,
-            Integer maxRounds,
             Integer activeSites,
             String attackTeamName,
-            String defenseTeamName
+            String defenseTeamName,
+            Boolean showZones,
+            Boolean showPointsOfInterest
     );
 
     /**
