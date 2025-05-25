@@ -55,15 +55,6 @@ public class BombOperationSessionController {
         return new ResponseEntity<>(convertToDto(session), HttpStatus.OK);
     }
 
-    @PostMapping("/{sessionId}/start-round")
-    public ResponseEntity<BombOperationSessionDto> startRound(@PathVariable Long sessionId) {
-        logger.info("Démarrage d'un nouveau round pour la session d'Opération Bombe ID: {}", sessionId);
-
-        BombOperationSession session = sessionService.startRound(sessionId);
-
-        return new ResponseEntity<>(convertToDto(session), HttpStatus.OK);
-    }
-
     @PostMapping("/{sessionId}/plant-bomb")
     public ResponseEntity<BombOperationSessionDto> plantBomb(
             @PathVariable Long sessionId,
@@ -113,20 +104,6 @@ public class BombOperationSessionController {
         logger.info("Explosion de la bombe pour la session ID: {}", sessionId);
 
         BombOperationSession session = sessionService.explodeBomb(sessionId);
-
-        return new ResponseEntity<>(convertToDto(session), HttpStatus.OK);
-    }
-
-    @PostMapping("/{sessionId}/end-round")
-    public ResponseEntity<BombOperationSessionDto> endRound(
-            @PathVariable Long sessionId,
-            @RequestParam String winnerTeam,
-            @RequestParam String reason) {
-
-        logger.info("Fin du round pour la session ID: {} avec victoire de l'équipe: {} pour la raison: {}",
-                sessionId, winnerTeam, reason);
-
-        BombOperationSession session = sessionService.endRound(sessionId, winnerTeam, reason);
 
         return new ResponseEntity<>(convertToDto(session), HttpStatus.OK);
     }

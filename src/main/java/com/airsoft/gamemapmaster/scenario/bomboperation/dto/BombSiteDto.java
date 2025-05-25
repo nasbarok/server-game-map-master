@@ -7,6 +7,7 @@ public class BombSiteDto {
     private Double longitude;
     private Double radius;
     private Long bombOperationScenarioId;
+    private Long scenarioId;
 
     public Long getId() {
         return id;
@@ -54,5 +55,26 @@ public class BombSiteDto {
 
     public void setBombOperationScenarioId(Long bombOperationScenarioId) {
         this.bombOperationScenarioId = bombOperationScenarioId;
+    }
+
+    public Long getScenarioId() {
+        return scenarioId;
+    }
+
+    public void setScenarioId(Long scenarioId) {
+        this.scenarioId = scenarioId;
+    }
+
+    @Override
+    public String toString() {
+        return "BombSiteDto{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", latitude=" + latitude +
+                ", longitude=" + longitude +
+                ", radius=" + radius +
+                ", bombOperationScenarioId=" + bombOperationScenarioId +
+                ", scenarioId=" + scenarioId +
+                '}';
     }
 }

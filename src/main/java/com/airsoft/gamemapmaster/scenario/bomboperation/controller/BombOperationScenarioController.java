@@ -107,23 +107,6 @@ public class BombOperationScenarioController {
         return new ResponseEntity<>(convertToDto(bombOperationScenario), HttpStatus.OK);
     }
 
-    @PostMapping("/{id}/activate")
-    public ResponseEntity<BombOperationScenarioDto> activateBombOperationScenario(@PathVariable Long id) {
-        logger.info("Activation du scénario d'Opération Bombe ID: {}", id);
-
-        BombOperationScenario bombOperationScenario = bombOperationScenarioService.activateBombOperationScenario(id);
-
-        return new ResponseEntity<>(convertToDto(bombOperationScenario), HttpStatus.OK);
-    }
-
-    @PostMapping("/{id}/deactivate")
-    public ResponseEntity<BombOperationScenarioDto> deactivateBombOperationScenario(@PathVariable Long id) {
-        logger.info("Désactivation du scénario d'Opération Bombe ID: {}", id);
-
-        BombOperationScenario bombOperationScenario = bombOperationScenarioService.deactivateBombOperationScenario(id);
-
-        return new ResponseEntity<>(convertToDto(bombOperationScenario), HttpStatus.OK);
-    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBombOperationScenario(@PathVariable Long id) {
@@ -137,16 +120,33 @@ public class BombOperationScenarioController {
     @PostMapping("/{scenarioId}/bomb-sites")
     public ResponseEntity<BombSiteDto> addBombSite(
             @PathVariable Long scenarioId,
-            @RequestParam String name,
-            @RequestParam Double latitude,
-            @RequestParam Double longitude,
-            @RequestParam(required = false) Double radius) {
+            @RequestBody BombSiteDto siteDto) {
 
         logger.info("Ajout d'un site de bombe au scénario d'Opération Bombe ID: {}", scenarioId);
 
-        BombSite bombSite = bombOperationScenarioService.addBombSite(scenarioId, name, latitude, longitude, radius);
+        logger.info("➡️ [addBombSite] scenarioId path = {}", scenarioId);
+        logger.info("📦 [addBombSite] DTO reçu : {}", siteDto);
+        logger.info("🧩 [addBombSite] BombOpScenarioId={}, name={}, lat={}, lng={}, radius={}",
+                siteDto.getBombOperationScenarioId(),
+                siteDto.getName(),
+                siteDto.getLatitude(),
+                siteDto.getLongitude(),
+                siteDto.getRadius()
+        );
 
-        return new ResponseEntity<>(convertToDto(bombSite), HttpStatus.CREATED);
+        BombSite bombSite = bombOperationScenarioService.addBombSite(
+                scenarioId,
+                siteDto.getBombOperationScenarioId(),
+                siteDto.getName(),
+                siteDto.getLatitude(),
+                siteDto.getLongitude(),
+                siteDto.getRadius()
+        );
+
+        logger.info("✅ Site de bombe créé avec ID: {}", bombSite.getId());
+        BombSiteDto bombSiteDto = convertToDto(bombSite);
+        logger.info("📦 [addBombSite] DTO de réponse : {}", bombSiteDto);
+        return new ResponseEntity<>(bombSiteDto, HttpStatus.CREATED);
     }
 
     @PutMapping("/bomb-sites/{siteId}")
@@ -173,11 +173,11 @@ public class BombOperationScenarioController {
         return new ResponseEntity<>(convertToDto(bombSite), HttpStatus.OK);
     }
 
-    @GetMapping("/{scenarioId}/bomb-sites")
-    public ResponseEntity<List<BombSiteDto>> getBombSitesByScenarioId(@PathVariable Long scenarioId) {
-        logger.info("Récupération des sites de bombe pour le scénario d'Opération Bombe ID: {}", scenarioId);
+    @GetMapping("/{bombOperationScenarioId}/bomb-sites")
+    public ResponseEntity<List<BombSiteDto>> getBombSitesByScenarioId(@PathVariable Long bombOperationScenarioId) {
+        logger.info("Récupération des sites de bombe pour le scénario d'Opération Bombe ID: {}", bombOperationScenarioId);
 
-        List<BombSite> bombSites = bombOperationScenarioService.getBombSitesByScenarioId(scenarioId);
+        List<BombSite> bombSites = bombOperationScenarioService.getBombSitesByScenarioId(bombOperationScenarioId);
 
         List<BombSiteDto> bombSiteDtos = bombSites.stream()
                 .map(this::convertToDto)
@@ -193,6 +193,43 @@ public class BombOperationScenarioController {
         bombOperationScenarioService.deleteBombSite(siteId);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/{scenarioId}/ensure")
+    public ResponseEntity<BombOperationScenarioDto> ensureBombOperationScenario(@PathVariable Long scenarioId) {
+        logger.info("🔎 Vérification du BombOperationScenario pour le scénario ID: {}", scenarioId);
+
+        Optional<BombOperationScenario> existingScenarioOpt = bombOperationScenarioService.findByScenarioId(scenarioId);
+
+        if (existingScenarioOpt.isPresent()) {
+            logger.info("✅ BombOperationScenario existant trouvé pour le scénario ID: {}", scenarioId);
+            BombOperationScenarioDto dto = convertToDto(existingScenarioOpt.get());
+            return ResponseEntity.ok(dto);
+        }
+
+        logger.info("➕ Aucun BombOperationScenario trouvé pour le scénario ID: {}. Recherche du Scenario principal...", scenarioId);
+
+        Optional<Scenario> baseScenarioOpt = scenarioService.findById(scenarioId);
+
+        if (!baseScenarioOpt.isPresent()) {
+            logger.error("❌ Aucun Scenario trouvé avec l'ID: {}", scenarioId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        Scenario baseScenario = baseScenarioOpt.get();
+
+        BombOperationScenario newBombOperationScenario = new BombOperationScenario();
+        newBombOperationScenario.setScenario(baseScenario);
+        newBombOperationScenario.setActive(false);
+        newBombOperationScenario.setBombTimer(60); // Par défaut
+        newBombOperationScenario.setDefuseTime(30); // Par défaut
+
+        BombOperationScenario savedScenario = bombOperationScenarioService.saveBombOperationScenario(newBombOperationScenario);
+
+        logger.info("🎯 Nouveau BombOperationScenario créé avec ID interne: {}", savedScenario.getId());
+        BombOperationScenarioDto dto = convertToDto(savedScenario);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     private BombOperationScenarioDto convertToDto(BombOperationScenario bombOperationScenario) {
@@ -218,6 +255,7 @@ public class BombOperationScenarioController {
         dto.setLongitude(bombSite.getLongitude());
         dto.setRadius(bombSite.getRadius());
         dto.setBombOperationScenarioId(bombSite.getBombOperationScenario().getId());
+        dto.setScenarioId(bombSite.getScenarioId());
         return dto;
     }
 }

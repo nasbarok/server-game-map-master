@@ -8,6 +8,7 @@ import java.util.Optional;
 
 @Repository
 public interface BombOperationScenarioRepository extends JpaRepository<BombOperationScenario, Long> {
-    List<BombOperationScenario> findByScenarioId(Long scenarioId);
+    // Recherche un scénario Opération Bombe par son scenarioId
+    Optional<BombOperationScenario> findByScenarioId(Long scenarioId);
     Optional<BombOperationScenario> findByScenarioIdAndActiveTrue(Long scenarioId);
 }

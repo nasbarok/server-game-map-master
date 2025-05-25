@@ -6,6 +6,7 @@ import com.airsoft.gamemapmaster.model.Scenario;
 import com.airsoft.gamemapmaster.model.User;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.model.TreasureHuntScenario;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.service.TreasureHuntService;
+import com.airsoft.gamemapmaster.service.GameMapService;
 import com.airsoft.gamemapmaster.service.ScenarioService;
 import com.airsoft.gamemapmaster.service.UserService;
 import org.slf4j.Logger;
@@ -28,10 +29,8 @@ public class ScenarioController {
 
     @Autowired
     private ScenarioService scenarioService;
-
     @Autowired
     private UserService userService;
-
     @Autowired
     private TreasureHuntService treasureHuntService;
 
@@ -56,7 +55,16 @@ public class ScenarioController {
     }
     @PostMapping
     public ResponseEntity<Scenario> createScenario(@RequestBody Scenario scenario) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(scenarioService.save(scenario));
+        // Logs détaillés
+        logger.info("📥 Création scénario reçu:");
+        logger.info("➡️ Nom: {}", scenario.getName());
+        logger.info("➡️ Description: {}", scenario.getDescription());
+        logger.info("➡️ Type: {}", scenario.getType());
+        logger.info("➡️ GameMap: {}", scenario.getGameMap() != null ? scenario.getGameMap().getId() : "❌ null");
+        logger.info("➡️ Creator: {}", scenario.getCreator() != null ? scenario.getCreator().getId() : "❌ null");
+
+        Scenario saved = scenarioService.save(scenario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/{id}")

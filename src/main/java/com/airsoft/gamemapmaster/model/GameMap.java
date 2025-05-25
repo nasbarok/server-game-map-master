@@ -1,5 +1,6 @@
 package com.airsoft.gamemapmaster.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -35,7 +36,8 @@ public class GameMap {
     @Column(nullable = false)
     private boolean active = true;
     
-    @OneToMany(mappedBy = "gameMap", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "gameMap")
+    @JsonIgnore
     private Set<Scenario> scenarios = new HashSet<>();
 
     @ManyToOne

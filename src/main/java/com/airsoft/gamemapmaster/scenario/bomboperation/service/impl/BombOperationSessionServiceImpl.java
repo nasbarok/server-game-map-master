@@ -99,6 +99,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
                     return new BombOperationException.SessionNotFoundException(gameSessionId, "game session");
                 });
     }
+
     @Override
     @Transactional
     public BombOperationSession plantBomb(Long sessionId, Long userId, Long siteId, Double latitude, Double longitude) {
@@ -280,13 +281,17 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec l'ID: " + userId));
 
+        //BombOperationNotification.roundEnd(session, "DEFENSE", "Bombe désamorcée", senderId)
         bombOperationWebSocketNotifier.sendToGameSession(
                 session.getGameSessionId(),
                 BombOperationNotification.bombDefused(session, user, userId)
         );
 
-        // Terminer le round avec victoire de l'équipe de défense
-        return endRound(sessionId, "DEFENSE", "Bombe désamorcée");
+        // Notifier la fin du round avec victoire de l'équipe de défense
+        User systemUser = userRepository.findById(1L).orElse(null); // Utilisateur système
+        Long senderId = systemUser != null ? systemUser.getId() : 0L;
+
+        return session;
     }
 
     @Override
@@ -323,13 +328,15 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         User systemUser = userRepository.findById(1L).orElse(null); // Utilisateur système
         Long senderId = systemUser != null ? systemUser.getId() : 0L;
 
+        //BombOperationNotification.roundEnd(session, "ATTACK", "Bombe explosée", senderId)
+
         bombOperationWebSocketNotifier.sendToGameSession(
                 session.getGameSessionId(),
                 BombOperationNotification.bombExploded(session, senderId)
         );
 
         // Terminer le round avec victoire de l'équipe d'attaque
-        return endRound(sessionId, "ATTACK", "Bombe explosée");
+        return session;
     }
 
     @Override

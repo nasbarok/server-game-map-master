@@ -5,6 +5,7 @@ import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombOperationScena
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSite;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface BombOperationScenarioService {
 
@@ -75,19 +76,6 @@ public interface BombOperationScenarioService {
      */
     BombOperationScenario getActiveBombOperationScenario(Long scenarioId);
 
-    /**
-     * Active un scénario d'Opération Bombe (et désactive les autres)
-     * @param id ID du scénario à activer
-     * @return Le scénario activé
-     */
-    BombOperationScenario activateBombOperationScenario(Long id);
-
-    /**
-     * Désactive un scénario d'Opération Bombe
-     * @param id ID du scénario à désactiver
-     * @return Le scénario désactivé
-     */
-    BombOperationScenario deactivateBombOperationScenario(Long id);
 
     /**
      * Supprime un scénario d'Opération Bombe
@@ -104,7 +92,7 @@ public interface BombOperationScenarioService {
      * @param radius Rayon du site en mètres
      * @return Le site créé
      */
-    BombSite addBombSite(Long scenarioId, String name, Double latitude, Double longitude, Double radius);
+    BombSite addBombSite(Long scenarioId,Long bombOperationScenarioId, String name, Double latitude, Double longitude, Double radius);
 
     /**
      * Met à jour un site de bombe
@@ -136,4 +124,8 @@ public interface BombOperationScenarioService {
      * @param siteId ID du site à supprimer
      */
     void deleteBombSite(Long siteId);
+
+    Optional<BombOperationScenario> findByScenarioId(Long scenarioId);
+
+    BombOperationScenario saveBombOperationScenario(BombOperationScenario newScenario);
 }

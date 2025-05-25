@@ -32,4 +32,6 @@ public class BombSite {
     @ManyToOne
     @JoinColumn(name = "bomb_operation_scenario_id", nullable = false)
     private BombOperationScenario bombOperationScenario;
+
+    private Long scenarioId; // ID du scénario de base, pour faciliter les requêtes
 }

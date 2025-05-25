@@ -1,11 +1,13 @@
 package com.airsoft.gamemapmaster.scenario.bomboperation.service.impl;
 import com.airsoft.gamemapmaster.model.Scenario;
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombSiteDto;
 import com.airsoft.gamemapmaster.scenario.bomboperation.exception.BombOperationException;
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombOperationScenario;
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSite;
 import com.airsoft.gamemapmaster.scenario.bomboperation.repository.BombOperationScenarioRepository;
 import com.airsoft.gamemapmaster.scenario.bomboperation.repository.BombSiteRepository;
 import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombOperationScenarioService;
+import com.airsoft.gamemapmaster.service.ScenarioService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class BombOperationScenarioServiceImpl implements BombOperationScenarioService {
@@ -24,6 +28,9 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
 
     @Autowired
     private BombSiteRepository bombSiteRepository;
+
+    @Autowired
+    private ScenarioService scenarioService;
 
     @Override
     @Transactional
@@ -139,14 +146,14 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
     @Override
     public BombOperationScenario getBombOperationScenarioByScenarioId(Long scenarioId) {
         logger.info("Récupération du scénario d'Opération Bombe par scénario ID: {}", scenarioId);
-        List<BombOperationScenario> scenarios = bombOperationScenarioRepository.findByScenarioId(scenarioId);
+        Optional<BombOperationScenario> scenario = bombOperationScenarioRepository.findByScenarioId(scenarioId);
 
-        if (scenarios.isEmpty()) {
+        if (scenario.isEmpty()) {
             logger.error("Aucun scénario d'Opération Bombe trouvé pour le scénario ID: {}", scenarioId);
             throw new BombOperationException.ScenarioNotFoundException(scenarioId);
         }
 
-        return scenarios.get(0);
+        return scenario.get();
     }
 
     @Override
@@ -156,60 +163,40 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
                 .orElse(null);
     }
 
-    @Override
-    @Transactional
-    public BombOperationScenario activateBombOperationScenario(Long id) {
-        logger.info("Activation du scénario d'Opération Bombe ID: {}", id);
-
-        BombOperationScenario bombOperationScenario = getBombOperationScenarioById(id);
-
-        // Désactiver tous les autres scénarios pour ce scénario de base
-        List<BombOperationScenario> scenarios = bombOperationScenarioRepository.findByScenarioId(bombOperationScenario.getScenario().getId());
-        for (BombOperationScenario scenario : scenarios) {
-            if (!scenario.getId().equals(id) && scenario.getActive()) {
-                scenario.setActive(false);
-                bombOperationScenarioRepository.save(scenario);
-                logger.info("Scénario d'Opération Bombe désactivé: {}", scenario.getId());
-            }
-        }
-
-        // Activer ce scénario
-        bombOperationScenario.setActive(true);
-        bombOperationScenario = bombOperationScenarioRepository.save(bombOperationScenario);
-        logger.info("Scénario d'Opération Bombe activé: {}", bombOperationScenario.getId());
-
-        return bombOperationScenario;
-    }
-
-    @Override
-    @Transactional
-    public BombOperationScenario deactivateBombOperationScenario(Long id) {
-        logger.info("Désactivation du scénario d'Opération Bombe ID: {}", id);
-
-        BombOperationScenario bombOperationScenario = getBombOperationScenarioById(id);
-        bombOperationScenario.setActive(false);
-        bombOperationScenario = bombOperationScenarioRepository.save(bombOperationScenario);
-        logger.info("Scénario d'Opération Bombe désactivé: {}", bombOperationScenario.getId());
-
-        return bombOperationScenario;
-    }
 
     @Override
     @Transactional
     public void deleteBombOperationScenario(Long id) {
         logger.info("Suppression du scénario d'Opération Bombe ID: {}", id);
 
+        // Récupérer le scénario d'Opération Bombe
         BombOperationScenario bombOperationScenario = getBombOperationScenarioById(id);
+
+        // Supprimer les BombSites associés
+        deleteBombSitesByScenarioId(bombOperationScenario);
+
+        // Supprimer le scénario d'Opération Bombe
         bombOperationScenarioRepository.delete(bombOperationScenario);
         logger.info("Scénario d'Opération Bombe supprimé: {}", id);
     }
 
+    private void deleteBombSitesByScenarioId(BombOperationScenario bombOperationScenario) {
+        // Supprimer tous les BombSites associés au BombOperationScenario
+        Set<BombSite> bombSites = bombOperationScenario.getBombSites();
+        if (bombSites != null) {
+            for (BombSite bombSite : bombSites) {
+                // Supprimer chaque BombSite
+                bombSiteRepository.delete(bombSite);
+                logger.info("BombSite supprimé: {}", bombSite.getId());
+            }
+        }
+    }
     @Override
     @Transactional
-    public BombSite addBombSite(Long scenarioId, String name, Double latitude, Double longitude, Double radius) {
-        logger.info("Ajout d'un site de bombe au scénario d'Opération Bombe ID: {}", scenarioId);
+    public BombSite addBombSite(Long scenarioId,Long bombOperationScenarioId, String name, Double latitude, Double longitude, Double radius) {
+        logger.info("[BombOperationScenarioServiceImpl] Ajout d'un site de bombe au scénario d'Opération Bombe ID: {}", scenarioId);
 
-        BombOperationScenario bombOperationScenario = getBombOperationScenarioById(scenarioId);
+        BombOperationScenario bombOperationScenario = getBombOperationScenarioById(bombOperationScenarioId);
 
         BombSite bombSite = new BombSite();
         bombSite.setName(name);
@@ -219,13 +206,27 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
         if (radius != null) {
             bombSite.setRadius(radius);
         }
-
         bombSite.setBombOperationScenario(bombOperationScenario);
 
         bombSite = bombSiteRepository.save(bombSite);
+        bombSite.setScenarioId(scenarioId); // Set scenarioId for easier queries
+
         logger.info("Site de bombe ajouté avec l'ID: {}", bombSite.getId());
 
+
         return bombSite;
+    }
+
+    private BombSiteDto convertToDto(BombSite bombSite) {
+        BombSiteDto dto = new BombSiteDto();
+        dto.setId(bombSite.getId());
+        dto.setName(bombSite.getName());
+        dto.setLatitude(bombSite.getLatitude());
+        dto.setLongitude(bombSite.getLongitude());
+        dto.setRadius(bombSite.getRadius());
+        dto.setBombOperationScenarioId(bombSite.getBombOperationScenario().getId());
+        dto.setScenarioId(bombSite.getBombOperationScenario().getScenario() != null ? bombSite.getBombOperationScenario().getScenario().getId() : null);
+        return dto;
     }
 
     @Override
@@ -268,9 +269,9 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
     }
 
     @Override
-    public List<BombSite> getBombSitesByScenarioId(Long scenarioId) {
-        logger.info("Récupération des sites de bombe pour le scénario d'Opération Bombe ID: {}", scenarioId);
-        return bombSiteRepository.findByBombOperationScenarioId(scenarioId);
+    public List<BombSite> getBombSitesByScenarioId(Long bombOperationScenarioId) {
+        logger.info("Récupération des sites de bombe pour le scénario d'Opération Bombe ID: {}", bombOperationScenarioId);
+        return bombSiteRepository.findByBombOperationScenarioId(bombOperationScenarioId);
     }
 
     @Override
@@ -281,5 +282,27 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
         BombSite bombSite = getBombSiteById(siteId);
         bombSiteRepository.delete(bombSite);
         logger.info("Site de bombe supprimé: {}", siteId);
+    }
+
+    @Override
+    public Optional<BombOperationScenario> findByScenarioId(Long scenarioId) {
+        try {
+            // Recherche du scénario Opération Bombe associé à l'ID du scénario
+            return bombOperationScenarioRepository.findByScenarioId(scenarioId);
+        } catch (Exception e) {
+            logger.error("Erreur lors de la recherche du BombOperationScenario pour l'ID: {}", scenarioId, e);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public BombOperationScenario saveBombOperationScenario(BombOperationScenario newScenario) {
+        try {
+            // Enregistrement du scénario dans la base de données
+            return bombOperationScenarioRepository.save(newScenario);
+        } catch (Exception e) {
+            logger.error("Erreur lors de la sauvegarde du BombOperationScenario", e);
+            throw new RuntimeException("Erreur lors de la sauvegarde du scénario Opération Bombe", e);
+        }
     }
 }

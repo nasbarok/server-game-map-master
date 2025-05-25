@@ -3,8 +3,10 @@ package com.airsoft.gamemapmaster.service.impl;
 import com.airsoft.gamemapmaster.model.GameMap;
 import com.airsoft.gamemapmaster.model.Scenario;
 import com.airsoft.gamemapmaster.repository.ScenarioRepository;
+import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombOperationScenarioService;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.service.TreasureHuntService;
 import com.airsoft.gamemapmaster.service.ScenarioService;
+import com.airsoft.gamemapmaster.service.GameMapService;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,10 +20,14 @@ public class ScenarioServiceImpl implements ScenarioService {
 
     @Autowired
     private ScenarioRepository scenarioRepository;
-
     @Autowired
     @Lazy
     private TreasureHuntService treasureHuntService;
+    @Autowired
+    private GameMapService gameMapService;
+    @Autowired
+    @Lazy
+    private BombOperationScenarioService bombOperationScenarioService;
 
     @Override
     public List<Scenario> findAll() {
@@ -55,14 +61,21 @@ public class ScenarioServiceImpl implements ScenarioService {
 
     @Override
     public void deleteById(Long id) {
-        // 1. Vérifier s'il existe un TreasureHuntScenario lié
+        // 1. Vérifier s'il existe un BombOperationScenario lié et le supprimer
+        bombOperationScenarioService.findByScenarioId(id).ifPresent(bombOperationScenario -> {
+            // Suppression des scénarios Opération Bombe liés
+            bombOperationScenarioService.deleteBombOperationScenario(bombOperationScenario.getId());
+        });
+
+        // 2. Vérifier s'il existe un TreasureHuntScenario lié et le supprimer
         treasureHuntService.findByScenarioId(id).ifPresent(treasureHuntScenario -> {
             treasureHuntService.deleteTreasureHuntScenarioById(treasureHuntScenario.getId());
         });
 
-        // 2. Supprimer le Scenario lui-même
+        // 3. Supprimer le Scenario lui-même
         scenarioRepository.deleteById(id);
     }
+
 
     @Override
     @Transactional
