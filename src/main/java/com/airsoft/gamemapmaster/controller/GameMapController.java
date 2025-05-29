@@ -65,6 +65,7 @@ public class GameMapController {
 
     @PutMapping("/{id}")
     public ResponseEntity<GameMap> updateMap(@PathVariable Long id, @RequestBody GameMap gameMapInput) {
+        logger.info("🟡 [GameMapController] Reçu PUT /api/maps/{}", id);
         Optional<GameMap> existingOpt = gameMapService.findById(id);
         if (existingOpt.isEmpty()) {
             logger.warn("Carte introuvable avec ID : {}", id);
