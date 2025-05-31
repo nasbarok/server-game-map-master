@@ -2,6 +2,10 @@ package com.airsoft.gamemapmaster.position.service;
 import com.airsoft.gamemapmaster.position.dto.GameSessionPositionHistoryDTO;
 import com.airsoft.gamemapmaster.position.dto.PlayerPositionDTO;
 
+import java.time.Instant;
+import java.util.Map;
+import java.util.Optional;
+
 public interface PlayerPositionService {
 
     /**
@@ -34,4 +38,7 @@ public interface PlayerPositionService {
      * @return L'historique des positions de l'équipe
      */
     GameSessionPositionHistoryDTO getTeamPositionHistory(Long gameSessionId, Long teamId);
+
+    Map<Long, PlayerPositionDTO> getLastKnownPositionsByField(Integer fieldId);
+    Optional<Instant> getLastSavedTimestamp(Long userId);
 }

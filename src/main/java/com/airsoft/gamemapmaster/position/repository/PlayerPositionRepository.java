@@ -2,9 +2,12 @@ package com.airsoft.gamemapmaster.position.repository;
 
 import com.airsoft.gamemapmaster.position.model.PlayerPosition;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository pour l'accès aux données des positions des joueurs
@@ -34,4 +37,9 @@ public interface PlayerPositionRepository extends JpaRepository<PlayerPosition, 
      * @return Liste des positions des membres de l'équipe
      */
     List<PlayerPosition> findByGameSessionIdAndTeamIdOrderByTimestamp(Long gameSessionId, Long teamId);
+
+    @Query("SELECT p FROM PlayerPosition p WHERE p.userId = :userId ORDER BY p.timestamp DESC")
+    Optional<PlayerPosition> findListPlayerPosition(@Param("userId") Long userId);
+
+    Optional<PlayerPosition> findTopByUserIdOrderByTimestampDesc(Long id);
 }
