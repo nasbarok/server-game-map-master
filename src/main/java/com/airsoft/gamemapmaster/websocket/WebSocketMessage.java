@@ -4,6 +4,7 @@ import com.airsoft.gamemapmaster.model.*;
 import com.airsoft.gamemapmaster.model.DTO.GameSessionDTO;
 import com.airsoft.gamemapmaster.model.DTO.GameSessionParticipantDTO;
 import com.airsoft.gamemapmaster.model.DTO.GameSessionScenarioDTO;
+import com.airsoft.gamemapmaster.position.dto.PlayerPositionDTO;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.model.Treasure;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -236,6 +237,23 @@ public class WebSocketMessage {
 
         return new WebSocketMessage(
                 "TREASURE_FOUND",
+                payload,
+                senderId,
+                System.currentTimeMillis()
+        );
+    }
+
+    public static WebSocketMessage playerPosition(PlayerPositionDTO positionDTO, Long senderId) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("userId", positionDTO.getUserId());
+        payload.put("gameSessionId", positionDTO.getGameSessionId());
+        payload.put("teamId", positionDTO.getTeamId());
+        payload.put("latitude", positionDTO.getLatitude());
+        payload.put("longitude", positionDTO.getLongitude());
+        payload.put("timestamp", positionDTO.getTimestamp());
+
+        return new WebSocketMessage(
+                "PLAYER_POSITION",
                 payload,
                 senderId,
                 System.currentTimeMillis()

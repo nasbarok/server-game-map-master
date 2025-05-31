@@ -1,5 +1,6 @@
-package com.airsoft.gamemapmaster.model;
+package com.airsoft.gamemapmaster.position.model;
 
+import com.airsoft.gamemapmaster.position.dto.PlayerPositionDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -39,4 +40,15 @@ public class PlayerPosition {
     
     @Column(nullable = false)
     private LocalDateTime timestamp;
+
+    public PlayerPositionDTO toDTO() {
+        return new PlayerPositionDTO(
+                userId,
+                gameSessionId,
+                teamId,
+                latitude,
+                longitude,
+                timestamp
+        );
+    }
 }
