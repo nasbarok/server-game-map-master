@@ -96,4 +96,6 @@ public interface BombOperationSessionService {
      * @param sessionId ID de la session à supprimer
      */
     void deleteSession(Long sessionId);
+
+    Object getGameSessionState(Long gameSessionId);
 }

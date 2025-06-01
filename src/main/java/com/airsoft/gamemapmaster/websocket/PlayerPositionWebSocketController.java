@@ -42,7 +42,7 @@ public class PlayerPositionWebSocketController {
      * @param fieldId ID du terrain
      * @param message DTO contenant les informations de position
      */
-    @MessageMapping("/field/{fieldId}")
+    @MessageMapping("/field/{fieldId}/position")
     public void handlePlayerPosition(@DestinationVariable Integer fieldId, WebSocketMessageDTO message) {
         PlayerPositionDTO position = message.getPayload();
         position.setUserId(message.getSenderId());

@@ -19,10 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -423,6 +420,35 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         BombOperationSession session = getSessionById(sessionId);
         sessionRepository.delete(session);
         logger.info("Session d'Opération Bombe supprimée: {}", sessionId);
+    }
+
+    @Override
+    public Object getGameSessionState(Long gameSessionId) {
+        BombOperationSession session = getSessionByGameSessionId(gameSessionId);
+
+        return Map.of(
+                "type", "BOMB_OPERATION_UPDATE",
+                "gameSessionId", session.getGameSessionId(),
+                "state", session.getGameState().toString(),
+                "activeBombSites", session.getActiveBombSiteIds(),
+                "plantedBombSites", session.getGameState() == BombOperationState.BOMB_PLANTED
+                        || session.getGameState() == BombOperationState.DEFUSING
+                        || session.getGameState() == BombOperationState.BOMB_EXPLODED
+                        || session.getGameState() == BombOperationState.BOMB_DEFUSED
+                        ? session.getActiveBombSiteIds() : List.of(),
+                "bombTimeRemaining", calculateRemainingTime(session),
+                "round", session.getCurrentRound(),
+                "attackScore", session.getAttackTeamScore(),
+                "defenseScore", session.getDefenseTeamScore()
+        );
+    }
+
+    private int calculateRemainingTime(BombOperationSession session) {
+        if (session.getGameState() != BombOperationState.BOMB_PLANTED) return 0;
+
+        int totalSeconds = session.getBombOperationScenario().getBombTimer();
+        long elapsed = java.time.Duration.between(session.getBombPlantedTime(), LocalDateTime.now()).getSeconds();
+        return Math.max(0, totalSeconds - (int) elapsed);
     }
 
     /**
