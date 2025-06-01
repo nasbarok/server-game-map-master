@@ -5,6 +5,7 @@ import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombOperationSessi
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSite;
 
 import java.util.List;
+import java.util.Map;
 
 public interface BombOperationSessionService {
 
@@ -98,4 +99,8 @@ public interface BombOperationSessionService {
     void deleteSession(Long sessionId);
 
     Object getGameSessionState(Long gameSessionId);
+
+    void saveTeamRoles(Long gameSessionId, Map<String, String> teamRoles);
+
+    Map<String, String> getTeamRoles(Long gameSessionId);
 }

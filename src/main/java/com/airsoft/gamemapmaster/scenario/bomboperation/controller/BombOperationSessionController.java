@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -155,7 +156,25 @@ public class BombOperationSessionController {
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+    /**
+     * Sauvegarde les rôles des équipes pour une session de jeu
+     */
+    @PostMapping("/{gameSessionId}/team-roles")
+    public ResponseEntity<Void> saveTeamRoles(
+            @PathVariable Long gameSessionId,
+            @RequestBody Map<String, String> teamRoles) {
 
+        sessionService.saveTeamRoles(gameSessionId, teamRoles);
+        return ResponseEntity.ok().build();
+    }
+    /**
+     * Récupère les rôles des équipes pour une session de jeu
+     */
+    @GetMapping("/{gameSessionId}/team-roles")
+    public ResponseEntity<Map<String, String>> getTeamRoles(@PathVariable Long gameSessionId) {
+        Map<String, String> teamRoles = sessionService.getTeamRoles(gameSessionId);
+        return ResponseEntity.ok(teamRoles);
+    }
     private BombOperationSessionDto convertToDto(BombOperationSession session) {
         BombOperationSessionDto dto = new BombOperationSessionDto();
         dto.setId(session.getId());

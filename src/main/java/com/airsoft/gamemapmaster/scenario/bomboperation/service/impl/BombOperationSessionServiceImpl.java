@@ -6,6 +6,7 @@ import com.airsoft.gamemapmaster.scenario.bomboperation.exception.BombOperationE
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.*;
 import com.airsoft.gamemapmaster.scenario.bomboperation.repository.BombOperationScenarioRepository;
 import com.airsoft.gamemapmaster.scenario.bomboperation.repository.BombOperationSessionRepository;
+import com.airsoft.gamemapmaster.scenario.bomboperation.repository.BombOperationTeamRoleRepository;
 import com.airsoft.gamemapmaster.scenario.bomboperation.repository.BombSiteRepository;
 import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombOperationPlayerStateService;
 import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombOperationScenarioService;
@@ -47,7 +48,8 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
 
     @Autowired
     private BombOperationWebSocketNotifier bombOperationWebSocketNotifier;
-
+    @Autowired
+    private BombOperationTeamRoleRepository teamRoleRepository;
 
     @Override
     @Transactional
@@ -441,6 +443,44 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
                 "attackScore", session.getAttackTeamScore(),
                 "defenseScore", session.getDefenseTeamScore()
         );
+    }
+    /**
+     * Sauvegarde les rôles des équipes pour une session de jeu
+     */
+    @Transactional
+    @Override
+    public void saveTeamRoles(Long gameSessionId, Map<String, String> teamRoles) {
+        // Supprimer les rôles existants pour cette session
+        teamRoleRepository.deleteByGameSessionId(gameSessionId);
+
+        // Sauvegarder les nouveaux rôles
+        for (Map.Entry<String, String> entry : teamRoles.entrySet()) {
+            Long teamId = Long.parseLong(entry.getKey());
+            String role = entry.getValue();
+
+            BombOperationTeamRole teamRole = new BombOperationTeamRole();
+            teamRole.setGameSessionId(gameSessionId);
+            teamRole.setTeamId(teamId);
+            teamRole.setRole(role);
+
+            teamRoleRepository.save(teamRole);
+        }
+    }
+
+
+    /**
+     * Récupère les rôles des équipes pour une session de jeu
+     */
+    @Override
+    public Map<String, String> getTeamRoles(Long gameSessionId) {
+        List<BombOperationTeamRole> teamRoles = teamRoleRepository.findByGameSessionId(gameSessionId);
+        Map<String, String> result = new HashMap<>();
+
+        for (BombOperationTeamRole teamRole : teamRoles) {
+            result.put(teamRole.getTeamId().toString(), teamRole.getRole());
+        }
+
+        return result;
     }
 
     private int calculateRemainingTime(BombOperationSession session) {

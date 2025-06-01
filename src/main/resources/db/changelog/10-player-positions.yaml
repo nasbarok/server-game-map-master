@@ -49,24 +49,59 @@ databaseChangeLog:
                   type: datetime
                   constraints:
                     nullable: false
-        
+
         - createIndex:
             indexName: idx_player_positions_game_session_id
             tableName: player_positions
             columns:
               - column:
                   name: game_session_id
-        
+
         - createIndex:
             indexName: idx_player_positions_user_id
             tableName: player_positions
             columns:
               - column:
                   name: user_id
-        
+
         - createIndex:
             indexName: idx_player_positions_timestamp
             tableName: player_positions
             columns:
               - column:
                   name: timestamp
+  - changeSet:
+      id: create-bomb-operation-team-role-table
+      author: nasbarok
+      changes:
+        - createTable:
+            tableName: bomb_operation_team_role
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: game_session_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: team_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_bomb_operation_team_role_game_session
+            tableName: bomb_operation_team_role
+            columns:
+              - column:
+                  name: game_session_id
