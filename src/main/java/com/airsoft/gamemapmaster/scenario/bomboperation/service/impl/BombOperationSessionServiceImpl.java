@@ -2,6 +2,8 @@ package com.airsoft.gamemapmaster.scenario.bomboperation.service.impl;
 
 import com.airsoft.gamemapmaster.model.User;
 import com.airsoft.gamemapmaster.repository.UserRepository;
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombOperationSessionDto;
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombSiteDto;
 import com.airsoft.gamemapmaster.scenario.bomboperation.exception.BombOperationException;
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.*;
 import com.airsoft.gamemapmaster.scenario.bomboperation.repository.BombOperationScenarioRepository;
@@ -12,7 +14,6 @@ import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombOperationPla
 import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombOperationScenarioService;
 import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombOperationSessionService;
 import com.airsoft.gamemapmaster.scenario.bomboperation.websocket.BombOperationWebSocketNotifier;
-import com.airsoft.gamemapmaster.websocket.WebSocketMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +30,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
     private static final Logger logger = LoggerFactory.getLogger(BombOperationSessionServiceImpl.class);
 
     @Autowired
-    private BombOperationSessionRepository sessionRepository;
+    private BombOperationSessionRepository bombOperationSessionRepository;
 
     @Autowired
     private BombOperationScenarioRepository scenarioRepository;
@@ -41,48 +42,78 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
     private UserRepository userRepository;
 
     @Autowired
-    private BombOperationScenarioService scenarioService;
+    private BombOperationScenarioService bombOperationScenarioService;
 
     @Autowired
-    private BombOperationPlayerStateService playerStateService;
+    private BombOperationPlayerStateService bombOperationPlayerStateService;
 
     @Autowired
     private BombOperationWebSocketNotifier bombOperationWebSocketNotifier;
     @Autowired
-    private BombOperationTeamRoleRepository teamRoleRepository;
+    private BombOperationTeamRoleRepository bombOperationTeamRoleRepository;
+
 
     @Override
     @Transactional
-    public BombOperationSession createSession(Long scenarioId, Long gameSessionId) {
+    public BombOperationSessionDto createBombOperationSession(Long scenarioId, Long gameSessionId) {
         logger.info("Création d'une nouvelle session pour le scénario d'Opération Bombe ID: {} et la session de jeu ID: {}",
                 scenarioId, gameSessionId);
 
         // Vérifier si une session existe déjà pour cette session de jeu
-        sessionRepository.findByGameSessionId(gameSessionId).ifPresent(session -> {
+        bombOperationSessionRepository.findByGameSessionId(gameSessionId).ifPresent(session -> {
             logger.info("Une session existe déjà pour la session de jeu ID: {}, elle sera supprimée", gameSessionId);
-            sessionRepository.delete(session);
+            bombOperationSessionRepository.delete(session);
         });
 
-        BombOperationScenario scenario = scenarioService.getBombOperationScenarioById(scenarioId);
+        BombOperationScenario bombOperationScenario = bombOperationScenarioService.getBombOperationScenarioByScenarioId(scenarioId);
 
-        BombOperationSession session = new BombOperationSession();
-        session.setBombOperationScenario(scenario);
-        session.setGameSessionId(gameSessionId);
-        session.setCurrentRound(1);
-        session.setAttackTeamScore(0);
-        session.setDefenseTeamScore(0);
-        session.setGameState(BombOperationState.WAITING);
+        BombOperationSession bombOperationSession = new BombOperationSession();
+        bombOperationSession.setBombOperationScenario(bombOperationScenario);
+        bombOperationSession.setGameSessionId(gameSessionId);
+        bombOperationSession.setCurrentRound(1);
+        bombOperationSession.setAttackTeamScore(0);
+        bombOperationSession.setDefenseTeamScore(0);
+        bombOperationSession.setGameState(BombOperationState.WAITING);
 
-        session = sessionRepository.save(session);
-        logger.info("Session d'Opération Bombe créée avec l'ID: {}", session.getId());
+        bombOperationSession = bombOperationSessionRepository.save(bombOperationSession);
+        logger.info("Session d'Opération Bombe créée avec l'ID: {}", bombOperationSession.getId());
 
-        return session;
+
+        // Récupération explicite des rôles associés à cette session
+        List<BombOperationTeamRole> roles = bombOperationTeamRoleRepository.findByGameSessionId(gameSessionId);
+        // Convertir vers un map
+        Map<Long, String> teamRoles = new HashMap<>();
+        for (BombOperationTeamRole role : roles) {
+            teamRoles.put(role.getTeamId(), role.getRole());
+        }
+
+        //Recuperer les BombSites du scénario
+        Set<BombSite> disableBombSites = bombOperationScenario.getBombSites();
+        //Valeur définis du nombre de site à activer aléatoirement
+        List<BombSite> toActiveBombSites = selectAndActivateRandomSites(new ArrayList<>(disableBombSites), bombOperationScenario.getActiveSites());
+
+        List<BombSiteDto> toActiveBombSitesDto = new ArrayList<>();
+        for (BombSite site : toActiveBombSites) {
+            toActiveBombSitesDto.add(site.toDto());
+        }
+
+        List<BombSiteDto> disableBombSitesDto = new ArrayList<>();
+        for (BombSite site : disableBombSites) {
+            disableBombSitesDto.add(site.toDto());
+        }
+
+        // Attacher ce map à une DTO enrichie
+        BombOperationSessionDto dto = bombOperationSession.toDto(teamRoles);
+        dto.setToActiveBombSites(toActiveBombSitesDto);
+        dto.setDisableBombSites(disableBombSitesDto);
+        logger.info("Session d'Opération Bombe avec toActiveBombSites "+toActiveBombSites.size()+" sites et disableBombSites "+disableBombSites.size()+" sites");
+        return dto;
     }
 
     @Override
     public BombOperationSession getSessionById(Long sessionId) {
         logger.info("Récupération de la session d'Opération Bombe ID: {}", sessionId);
-        return sessionRepository.findById(sessionId)
+        return bombOperationSessionRepository.findById(sessionId)
                 .orElseThrow(() -> {
                     logger.error("Session d'Opération Bombe non trouvée avec l'ID: {}", sessionId);
                     return new BombOperationException.SessionNotFoundException(sessionId);
@@ -90,15 +121,69 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
     }
 
     @Override
-    public BombOperationSession getSessionByGameSessionId(Long gameSessionId) {
+    public BombOperationSessionDto getBombOperationSessionDtoByGameSessionId(Long gameSessionId) {
         logger.info("Récupération de la session d'Opération Bombe par session de jeu ID: {}", gameSessionId);
-        return sessionRepository.findByGameSessionId(gameSessionId)
+
+        BombOperationSession bombOperationSession = bombOperationSessionRepository.findByGameSessionId(gameSessionId)
                 .orElseThrow(() -> {
                     logger.error("Session d'Opération Bombe non trouvée pour la session de jeu ID: {}", gameSessionId);
                     return new BombOperationException.SessionNotFoundException(gameSessionId, "game session");
                 });
+
+        logger.info("Session d'Opération Bombe trouvée pour la session de jeu ID: {}", gameSessionId);
+
+        // 🧠 Récupération des rôles
+        List<BombOperationTeamRole> teamRoles = bombOperationTeamRoleRepository.findByGameSessionId(gameSessionId);
+        Map<Long, String> rolesMap = new HashMap<>();
+        for (BombOperationTeamRole role : teamRoles) {
+            rolesMap.put(role.getTeamId(), role.getRole());
+        }
+
+        // 🧠 Enrichissement du DTO
+        BombOperationSessionDto dto = bombOperationSession.toDto(rolesMap);
+
+        // 🧩 Extraction des sites depuis le scénario lié
+        Set<BombSite> allSites = bombOperationSession.getBombOperationScenario().getBombSites();
+        List<BombSiteDto> allSitesDto = allSites.stream()
+                .map(BombSite::toDto)
+                .collect(Collectors.toList());
+
+        // 🧩 Sites désactivés = tous
+        dto.setDisableBombSites(allSitesDto);
+
+        // 🧩 Sites à activer (actifs = true)
+        List<BombSiteDto> toActivate = allSites.stream()
+                .filter(BombSite::isActive)
+                .map(BombSite::toDto)
+                .collect(Collectors.toList());
+        dto.setToActiveBombSites(toActivate);
+
+        // 🧩 Sites actifs dans cette session (via champ activeBombSiteIds)
+        List<Long> ids = bombOperationSession.getActiveBombSiteIds();
+        List<BombSiteDto> active = allSites.stream()
+                .filter(site -> ids.contains(site.getId()))
+                .map(BombSite::toDto)
+                .collect(Collectors.toList());
+        dto.setActiveBombSites(active);
+
+        logger.info("✅ DTO enrichi : toActivate={}, disable={}, active={}",
+                toActivate.size(), allSitesDto.size(), active.size());
+
+        return dto;
     }
 
+    @Override
+    public BombOperationSession getBombOperationSessionByGameSessionId(Long gameSessionId) {
+        logger.info("Récupération de la session d'Opération Bombe par session de jeu ID: {}", gameSessionId);
+        BombOperationSession bombOperationSession = bombOperationSessionRepository.findByGameSessionId(gameSessionId)
+                .orElse(null);
+        if (bombOperationSession == null) {
+            logger.error("Session d'Opération Bombe non trouvée pour la session de jeu ID: {}", gameSessionId);
+            throw new BombOperationException.SessionNotFoundException(gameSessionId, "game session");
+        }
+        logger.info("Session d'Opération Bombe trouvée pour la session de jeu ID: {}", gameSessionId);
+        return bombOperationSession;
+    }
     @Override
     @Transactional
     public BombOperationSession plantBomb(Long sessionId, Long userId, Long siteId, Double latitude, Double longitude) {
@@ -122,7 +207,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         }
 
         // Vérifier que le joueur est dans l'équipe d'attaque
-        BombOperationPlayerState playerState = playerStateService.getPlayerState(sessionId, userId);
+        BombOperationPlayerState playerState = bombOperationPlayerStateService.getPlayerState(sessionId, userId);
 
         if (playerState.getTeam() != BombOperationTeam.ATTACK) {
             logger.error("L'utilisateur ID: {} n'est pas dans l'équipe d'attaque", userId);
@@ -152,12 +237,12 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         session.setGameState(BombOperationState.BOMB_PLANTED);
         session.setBombPlantedTime(LocalDateTime.now());
 
-        session = sessionRepository.save(session);
+        session = bombOperationSessionRepository.save(session);
         logger.info("Bombe posée sur le site ID: {} par l'utilisateur ID: {} pour la session ID: {}",
                 siteId, userId, sessionId);
 
         // Mettre à jour le score du joueur
-        playerStateService.incrementBombsPlanted(sessionId, userId);
+        bombOperationPlayerStateService.incrementBombsPlanted(sessionId, userId);
 
         // Envoyer une notification WebSocket
         User user = userRepository.findById(userId)
@@ -188,7 +273,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         }
 
         // Vérifier que le joueur est dans l'équipe de défense
-        BombOperationPlayerState playerState = playerStateService.getPlayerState(sessionId, userId);
+        BombOperationPlayerState playerState = bombOperationPlayerStateService.getPlayerState(sessionId, userId);
 
         if (playerState.getTeam() != BombOperationTeam.DEFENSE) {
             logger.error("L'utilisateur ID: {} n'est pas dans l'équipe de défense", userId);
@@ -215,7 +300,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         session.setGameState(BombOperationState.DEFUSING);
         session.setDefuseStartTime(LocalDateTime.now());
 
-        session = sessionRepository.save(session);
+        session = bombOperationSessionRepository.save(session);
         logger.info("Désamorçage commencé par l'utilisateur ID: {} pour la session ID: {}", userId, sessionId);
 
         return session;
@@ -238,7 +323,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         }
 
         // Vérifier que le joueur est dans l'équipe de défense
-        BombOperationPlayerState playerState = playerStateService.getPlayerState(sessionId, userId);
+        BombOperationPlayerState playerState = bombOperationPlayerStateService.getPlayerState(sessionId, userId);
 
         if (playerState.getTeam() != BombOperationTeam.DEFENSE) {
             logger.error("L'utilisateur ID: {} n'est pas dans l'équipe de défense", userId);
@@ -270,11 +355,11 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         // Mettre à jour la session
         session.setGameState(BombOperationState.BOMB_DEFUSED);
 
-        session = sessionRepository.save(session);
+        session = bombOperationSessionRepository.save(session);
         logger.info("Bombe désamorcée par l'utilisateur ID: {} pour la session ID: {}", userId, sessionId);
 
         // Mettre à jour le score du joueur
-        playerStateService.incrementBombsDefused(sessionId, userId);
+        bombOperationPlayerStateService.incrementBombsDefused(sessionId, userId);
 
         // Envoyer une notification WebSocket
         User user = userRepository.findById(userId)
@@ -320,7 +405,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         // Mettre à jour la session
         session.setGameState(BombOperationState.BOMB_EXPLODED);
 
-        session = sessionRepository.save(session);
+        session = bombOperationSessionRepository.save(session);
         logger.info("Bombe explosée pour la session ID: {}", sessionId);
 
         // Envoyer une notification WebSocket
@@ -358,7 +443,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         // Mettre à jour l'état de la session
         session.setGameState(BombOperationState.GAME_OVER);
 
-        session = sessionRepository.save(session);
+        session = bombOperationSessionRepository.save(session);
         logger.info("Partie terminée pour la session ID: {}", sessionId);
 
         // Envoyer une notification WebSocket
@@ -420,13 +505,13 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         logger.info("Suppression de la session d'Opération Bombe ID: {}", sessionId);
 
         BombOperationSession session = getSessionById(sessionId);
-        sessionRepository.delete(session);
+        bombOperationSessionRepository.delete(session);
         logger.info("Session d'Opération Bombe supprimée: {}", sessionId);
     }
 
     @Override
     public Object getGameSessionState(Long gameSessionId) {
-        BombOperationSession session = getSessionByGameSessionId(gameSessionId);
+        BombOperationSession session = getBombOperationSessionByGameSessionId(gameSessionId);
 
         return Map.of(
                 "type", "BOMB_OPERATION_UPDATE",
@@ -451,7 +536,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
     @Override
     public void saveTeamRoles(Long gameSessionId, Map<String, String> teamRoles) {
         // Supprimer les rôles existants pour cette session
-        teamRoleRepository.deleteByGameSessionId(gameSessionId);
+        bombOperationTeamRoleRepository.deleteByGameSessionId(gameSessionId);
 
         // Sauvegarder les nouveaux rôles
         for (Map.Entry<String, String> entry : teamRoles.entrySet()) {
@@ -463,7 +548,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
             teamRole.setTeamId(teamId);
             teamRole.setRole(role);
 
-            teamRoleRepository.save(teamRole);
+            bombOperationTeamRoleRepository.save(teamRole);
         }
     }
 
@@ -473,7 +558,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
      */
     @Override
     public Map<String, String> getTeamRoles(Long gameSessionId) {
-        List<BombOperationTeamRole> teamRoles = teamRoleRepository.findByGameSessionId(gameSessionId);
+        List<BombOperationTeamRole> teamRoles = bombOperationTeamRoleRepository.findByGameSessionId(gameSessionId);
         Map<String, String> result = new HashMap<>();
 
         for (BombOperationTeamRole teamRole : teamRoles) {
@@ -483,6 +568,68 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         return result;
     }
 
+    @Override
+    public List<BombSite> selectAndActivateRandomSites(Long gameSessionId) {
+        BombOperationSession bombOperationSession = bombOperationSessionRepository.findByGameSessionId(gameSessionId)
+                .orElseThrow(() -> new RuntimeException("Session non trouvée"));
+
+        BombOperationScenario scenario = bombOperationSession.getBombOperationScenario();
+
+        int toActivate = scenario.getActiveSites() != null && scenario.getActiveSites() > 0
+                ? Math.min(scenario.getActiveSites(), scenario.getBombSites().size())
+                : 1;
+
+        List<BombSite> allSites = new ArrayList<>(scenario.getBombSites());
+        Collections.shuffle(allSites);
+
+        List<BombSite> selectedSites = allSites.subList(0, toActivate);
+
+        // Réinitialiser tous les sites
+        for (BombSite site : scenario.getBombSites()) {
+            site.setActive(false);
+        }
+
+        // Activer les sites choisis
+        for (BombSite site : selectedSites) {
+            site.setActive(true);
+        }
+
+        // Sauvegarde en cascade si nécessaire (sinon saveAll)
+        bombSiteRepository.saveAll(scenario.getBombSites());
+
+        // Mémorisation dans la session
+        List<Long> selectedIds = new ArrayList<>();
+        for (BombSite site : selectedSites) {
+            selectedIds.add(site.getId());
+        }
+        bombOperationSession.setActiveBombSiteIds(selectedIds);
+        bombOperationSessionRepository.save(bombOperationSession);
+
+        return selectedSites;
+    }
+
+
+    public List<BombSite> selectAndActivateRandomSites(List<BombSite> bombSites,int nbToActive) {
+        if (nbToActive <= 0 || bombSites.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Mélanger les sites pour une sélection aléatoire
+        Collections.shuffle(bombSites);
+
+        // Limiter le nombre de sites à activer
+        int toActivate = Math.min(nbToActive, bombSites.size());
+
+        // Sélectionner les sites à activer
+        List<BombSite> selectedSites = bombSites.subList(0, toActivate);
+
+        // Activer les sites sélectionnés
+        for (BombSite site : selectedSites) {
+            site.setActive(true);
+        }
+
+        return selectedSites;
+    }
     private int calculateRemainingTime(BombOperationSession session) {
         if (session.getGameState() != BombOperationState.BOMB_PLANTED) return 0;
 

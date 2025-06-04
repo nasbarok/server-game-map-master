@@ -12,18 +12,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/sessions/bomb-operation")
+@RequestMapping("/api/game-sessions/bomb-operation")
 public class BombOperationSessionController {
 
     private static final Logger logger = LoggerFactory.getLogger(BombOperationSessionController.class);
 
     @Autowired
-    private BombOperationSessionService sessionService;
+    private BombOperationSessionService bombOperationSessionService;
 
     @PostMapping
     public ResponseEntity<BombOperationSessionDto> createSession(
@@ -33,27 +33,30 @@ public class BombOperationSessionController {
         logger.info("Création d'une nouvelle session pour le scénario d'Opération Bombe ID: {} et la session de jeu ID: {}",
                 scenarioId, gameSessionId);
 
-        BombOperationSession session = sessionService.createSession(scenarioId, gameSessionId);
-
-        return new ResponseEntity<>(convertToDto(session), HttpStatus.CREATED);
+        BombOperationSessionDto bombOperationSessionDto= bombOperationSessionService.createBombOperationSession(scenarioId, gameSessionId);
+        logger.info("🎯 Sites à activer: {}", bombOperationSessionDto.getToActiveBombSites());
+        logger.info("🎯 Sites désactivés: {}", bombOperationSessionDto.getDisableBombSites());
+        logger.info("🎯 Sites actifs: {}", bombOperationSessionDto.getActiveBombSites());
+        return new ResponseEntity<>(bombOperationSessionDto, HttpStatus.CREATED);
     }
 
     @GetMapping("/{sessionId}")
     public ResponseEntity<BombOperationSessionDto> getSessionById(@PathVariable Long sessionId) {
         logger.info("Récupération de la session d'Opération Bombe ID: {}", sessionId);
 
-        BombOperationSession session = sessionService.getSessionById(sessionId);
+        BombOperationSession session = bombOperationSessionService.getSessionById(sessionId);
 
-        return new ResponseEntity<>(convertToDto(session), HttpStatus.OK);
+        return new ResponseEntity<>(session.toDto(null), HttpStatus.OK);
     }
 
     @GetMapping("/by-game-session/{gameSessionId}")
     public ResponseEntity<BombOperationSessionDto> getSessionByGameSessionId(@PathVariable Long gameSessionId) {
         logger.info("Récupération de la session d'Opération Bombe par session de jeu ID: {}", gameSessionId);
 
-        BombOperationSession session = sessionService.getSessionByGameSessionId(gameSessionId);
+        BombOperationSessionDto bombOperationSessionDto = this.bombOperationSessionService.getBombOperationSessionDtoByGameSessionId(gameSessionId);
 
-        return new ResponseEntity<>(convertToDto(session), HttpStatus.OK);
+
+        return new ResponseEntity<>(bombOperationSessionDto, HttpStatus.OK);
     }
 
     @PostMapping("/{sessionId}/plant-bomb")
@@ -67,9 +70,9 @@ public class BombOperationSessionController {
         logger.info("Tentative de pose de bombe par l'utilisateur ID: {} sur le site ID: {} pour la session ID: {}",
                 userId, siteId, sessionId);
 
-        BombOperationSession session = sessionService.plantBomb(sessionId, userId, siteId, latitude, longitude);
+        BombOperationSession session = bombOperationSessionService.plantBomb(sessionId, userId, siteId, latitude, longitude);
 
-        return new ResponseEntity<>(convertToDto(session), HttpStatus.OK);
+        return new ResponseEntity<>(session.toDto(null), HttpStatus.OK);
     }
 
     @PostMapping("/{sessionId}/start-defusing")
@@ -82,9 +85,9 @@ public class BombOperationSessionController {
         logger.info("Tentative de désamorçage de bombe par l'utilisateur ID: {} pour la session ID: {}",
                 userId, sessionId);
 
-        BombOperationSession session = sessionService.startDefusing(sessionId, userId, latitude, longitude);
+        BombOperationSession session = bombOperationSessionService.startDefusing(sessionId, userId, latitude, longitude);
 
-        return new ResponseEntity<>(convertToDto(session), HttpStatus.OK);
+        return new ResponseEntity<>(session.toDto(null), HttpStatus.OK);
     }
 
     @PostMapping("/{sessionId}/finish-defusing")
@@ -95,27 +98,27 @@ public class BombOperationSessionController {
         logger.info("Fin du désamorçage de bombe par l'utilisateur ID: {} pour la session ID: {}",
                 userId, sessionId);
 
-        BombOperationSession session = sessionService.finishDefusing(sessionId, userId);
+        BombOperationSession session = bombOperationSessionService.finishDefusing(sessionId, userId);
 
-        return new ResponseEntity<>(convertToDto(session), HttpStatus.OK);
+        return new ResponseEntity<>(session.toDto(null), HttpStatus.OK);
     }
 
     @PostMapping("/{sessionId}/explode-bomb")
     public ResponseEntity<BombOperationSessionDto> explodeBomb(@PathVariable Long sessionId) {
         logger.info("Explosion de la bombe pour la session ID: {}", sessionId);
 
-        BombOperationSession session = sessionService.explodeBomb(sessionId);
+        BombOperationSession session = bombOperationSessionService.explodeBomb(sessionId);
 
-        return new ResponseEntity<>(convertToDto(session), HttpStatus.OK);
+        return new ResponseEntity<>(session.toDto(null), HttpStatus.OK);
     }
 
     @PostMapping("/{sessionId}/end-game")
     public ResponseEntity<BombOperationSessionDto> endGame(@PathVariable Long sessionId) {
         logger.info("Fin de la partie pour la session ID: {}", sessionId);
 
-        BombOperationSession session = sessionService.endGame(sessionId);
+        BombOperationSession session = bombOperationSessionService.endGame(sessionId);
 
-        return new ResponseEntity<>(convertToDto(session), HttpStatus.OK);
+        return new ResponseEntity<>(session.toDto(null), HttpStatus.OK);
     }
 
     @GetMapping("/{sessionId}/is-player-in-active-bomb-site")
@@ -126,24 +129,25 @@ public class BombOperationSessionController {
 
         logger.info("Vérification si le joueur est dans un site de bombe actif pour la session ID: {}", sessionId);
 
-        BombSite bombSite = sessionService.isPlayerInActiveBombSite(sessionId, latitude, longitude);
+        BombSite bombSite = bombOperationSessionService.isPlayerInActiveBombSite(sessionId, latitude, longitude);
 
         if (bombSite == null) {
             return new ResponseEntity<>(false, HttpStatus.OK);
         }
 
-        return new ResponseEntity<>(convertToDto(bombSite), HttpStatus.OK);
+        return new ResponseEntity<>(bombSite.toDto(), HttpStatus.OK);
     }
 
     @GetMapping("/{sessionId}/active-bomb-sites")
     public ResponseEntity<List<BombSiteDto>> getActiveBombSites(@PathVariable Long sessionId) {
         logger.info("Récupération des sites de bombe actifs pour la session ID: {}", sessionId);
 
-        List<BombSite> activeSites = sessionService.getActiveBombSites(sessionId);
+        List<BombSite> activeSites = bombOperationSessionService.getActiveBombSites(sessionId);
 
-        List<BombSiteDto> activeSiteDtos = activeSites.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        List<BombSiteDto> activeSiteDtos = new ArrayList<>();
+        for (BombSite site : activeSites) {
+            activeSiteDtos.add(site.toDto());
+        }
 
         return new ResponseEntity<>(activeSiteDtos, HttpStatus.OK);
     }
@@ -152,7 +156,7 @@ public class BombOperationSessionController {
     public ResponseEntity<Void> deleteSession(@PathVariable Long sessionId) {
         logger.info("Suppression de la session d'Opération Bombe ID: {}", sessionId);
 
-        sessionService.deleteSession(sessionId);
+        bombOperationSessionService.deleteSession(sessionId);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -164,7 +168,7 @@ public class BombOperationSessionController {
             @PathVariable Long gameSessionId,
             @RequestBody Map<String, String> teamRoles) {
 
-        sessionService.saveTeamRoles(gameSessionId, teamRoles);
+        bombOperationSessionService.saveTeamRoles(gameSessionId, teamRoles);
         return ResponseEntity.ok().build();
     }
     /**
@@ -172,33 +176,22 @@ public class BombOperationSessionController {
      */
     @GetMapping("/{gameSessionId}/team-roles")
     public ResponseEntity<Map<String, String>> getTeamRoles(@PathVariable Long gameSessionId) {
-        Map<String, String> teamRoles = sessionService.getTeamRoles(gameSessionId);
+        Map<String, String> teamRoles = bombOperationSessionService.getTeamRoles(gameSessionId);
         return ResponseEntity.ok(teamRoles);
     }
-    private BombOperationSessionDto convertToDto(BombOperationSession session) {
-        BombOperationSessionDto dto = new BombOperationSessionDto();
-        dto.setId(session.getId());
-        dto.setBombOperationScenarioId(session.getBombOperationScenario().getId());
-        dto.setGameSessionId(session.getGameSessionId());
-        dto.setCurrentRound(session.getCurrentRound());
-        dto.setAttackTeamScore(session.getAttackTeamScore());
-        dto.setDefenseTeamScore(session.getDefenseTeamScore());
-        dto.setGameState(session.getGameState().toString());
-        dto.setRoundStartTime(session.getRoundStartTime());
-        dto.setBombPlantedTime(session.getBombPlantedTime());
-        dto.setDefuseStartTime(session.getDefuseStartTime());
-        dto.setActiveBombSiteIds(session.getActiveBombSiteIds());
-        return dto;
-    }
 
-    private BombSiteDto convertToDto(BombSite bombSite) {
-        BombSiteDto dto = new BombSiteDto();
-        dto.setId(bombSite.getId());
-        dto.setName(bombSite.getName());
-        dto.setLatitude(bombSite.getLatitude());
-        dto.setLongitude(bombSite.getLongitude());
-        dto.setRadius(bombSite.getRadius());
-        dto.setBombOperationScenarioId(bombSite.getBombOperationScenario().getId());
-        return dto;
+    @PostMapping("/{gameSessionId}/active-bomb-sites")
+    public ResponseEntity<List<BombSiteDto>> setActiveBombSites(
+            @PathVariable Long gameSessionId) {
+        logger.info("🎯 Sélection aléatoire des sites à activer pour la session ID: {}", gameSessionId);
+
+        List<BombSite> selectedBombSites = bombOperationSessionService.selectAndActivateRandomSites(gameSessionId);
+
+        List<BombSiteDto> selectedBombSiteDtos = new ArrayList<>();
+        for (BombSite site : selectedBombSites) {
+            selectedBombSiteDtos.add(site.toDto());
+        }
+
+        return ResponseEntity.ok(selectedBombSiteDtos);
     }
 }

@@ -9,6 +9,8 @@ public class BombSiteDto {
     private Long bombOperationScenarioId;
     private Long scenarioId;
 
+    private boolean isActive = false;
+
     public Long getId() {
         return id;
     }
@@ -65,6 +67,14 @@ public class BombSiteDto {
         this.scenarioId = scenarioId;
     }
 
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+
     @Override
     public String toString() {
         return "BombSiteDto{" +
@@ -75,6 +85,7 @@ public class BombSiteDto {
                 ", radius=" + radius +
                 ", bombOperationScenarioId=" + bombOperationScenarioId +
                 ", scenarioId=" + scenarioId +
+                ", isActive=" + isActive +
                 '}';
     }
 }

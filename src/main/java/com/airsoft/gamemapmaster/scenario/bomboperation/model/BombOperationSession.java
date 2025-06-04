@@ -1,5 +1,6 @@
 package com.airsoft.gamemapmaster.scenario.bomboperation.model;
 
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombOperationSessionDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,6 +9,7 @@ import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -68,5 +70,21 @@ public class BombOperationSession {
     @PreUpdate
     protected void onUpdate() {
         lastUpdated = LocalDateTime.now();
+    }
+
+    public BombOperationSessionDto toDto(Map<Long, String> teamRoles) {
+        BombOperationSessionDto dto = new BombOperationSessionDto();
+        dto.setId(this.id);
+        dto.setBombOperationScenario(this.bombOperationScenario != null ? this.bombOperationScenario.toDto() : null);
+        dto.setGameSessionId(this.gameSessionId);
+        dto.setCurrentRound(this.currentRound);
+        dto.setAttackTeamScore(this.attackTeamScore);
+        dto.setDefenseTeamScore(this.defenseTeamScore);
+        dto.setGameState(this.gameState != null ? this.gameState.toString() : null);
+        dto.setRoundStartTime(this.roundStartTime);
+        dto.setBombPlantedTime(this.bombPlantedTime);
+        dto.setDefuseStartTime(this.defuseStartTime);
+        dto.setTeamRoles(teamRoles);
+        return dto;
     }
 }

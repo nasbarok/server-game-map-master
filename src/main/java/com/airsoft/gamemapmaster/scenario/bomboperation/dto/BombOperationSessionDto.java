@@ -1,11 +1,15 @@
 package com.airsoft.gamemapmaster.scenario.bomboperation.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
+@JsonInclude(JsonInclude.Include.ALWAYS)
 public class BombOperationSessionDto {
     private Long id;
-    private Long bombOperationScenarioId;
+    private BombOperationScenarioDto bombOperationScenario;
     private Long gameSessionId;
     private Integer currentRound;
     private Integer attackTeamScore;
@@ -14,22 +18,16 @@ public class BombOperationSessionDto {
     private LocalDateTime roundStartTime;
     private LocalDateTime bombPlantedTime;
     private LocalDateTime defuseStartTime;
-    private List<Long> activeBombSiteIds;
-
+    private List<BombSiteDto> toActiveBombSites;
+    private List<BombSiteDto> activeBombSites;
+    private List<BombSiteDto> disableBombSites;
+    private Map<Long, String> teamRoles;
     public Long getId() {
         return id;
     }
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Long getBombOperationScenarioId() {
-        return bombOperationScenarioId;
-    }
-
-    public void setBombOperationScenarioId(Long bombOperationScenarioId) {
-        this.bombOperationScenarioId = bombOperationScenarioId;
     }
 
     public Long getGameSessionId() {
@@ -96,12 +94,45 @@ public class BombOperationSessionDto {
         this.defuseStartTime = defuseStartTime;
     }
 
-    public List<Long> getActiveBombSiteIds() {
-        return activeBombSiteIds;
+
+    public BombOperationScenarioDto getBombOperationScenario() {
+        return bombOperationScenario;
     }
 
-    public void setActiveBombSiteIds(List<Long> activeBombSiteIds) {
-        this.activeBombSiteIds = activeBombSiteIds;
+    public void setBombOperationScenario(BombOperationScenarioDto bombOperationScenario) {
+        this.bombOperationScenario = bombOperationScenario;
+    }
+
+    public Map<Long, String> getTeamRoles() {
+        return teamRoles;
+    }
+
+    public void setTeamRoles(Map<Long, String> teamRoles) {
+        this.teamRoles = teamRoles;
+    }
+
+    public List<BombSiteDto> getToActiveBombSites() {
+        return toActiveBombSites;
+    }
+
+    public void setToActiveBombSites(List<BombSiteDto> toActiveBombSites) {
+        this.toActiveBombSites = toActiveBombSites;
+    }
+
+    public List<BombSiteDto> getActiveBombSites() {
+        return activeBombSites;
+    }
+
+    public void setActiveBombSites(List<BombSiteDto> activeBombSites) {
+        this.activeBombSites = activeBombSites;
+    }
+
+    public List<BombSiteDto> getDisableBombSites() {
+        return disableBombSites;
+    }
+
+    public void setDisableBombSites(List<BombSiteDto> disableBombSites) {
+        this.disableBombSites = disableBombSites;
     }
 }
 

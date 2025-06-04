@@ -105,3 +105,16 @@ databaseChangeLog:
             columns:
               - column:
                   name: game_session_id
+  - changeSet:
+      id: add-is-active-to-bomb-site
+      author: nasbarok
+      changes:
+        - addColumn:
+            tableName: bomb_sites
+            columns:
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

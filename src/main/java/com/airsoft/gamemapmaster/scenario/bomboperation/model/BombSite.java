@@ -1,6 +1,7 @@
 package com.airsoft.gamemapmaster.scenario.bomboperation.model;
 
 
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombSiteDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -33,5 +34,20 @@ public class BombSite {
     @JoinColumn(name = "bomb_operation_scenario_id", nullable = false)
     private BombOperationScenario bombOperationScenario;
 
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = false;
+
     private Long scenarioId; // ID du scénario de base, pour faciliter les requêtes
+
+    public BombSiteDto toDto() {
+        BombSiteDto dto = new BombSiteDto();
+        dto.setId(this.id);
+        dto.setName(this.name);
+        dto.setLatitude(this.latitude);
+        dto.setLongitude(this.longitude);
+        dto.setRadius(this.radius);
+        dto.setBombOperationScenarioId(this.bombOperationScenario != null ? this.bombOperationScenario.getId() : null);
+        dto.setScenarioId(this.scenarioId);
+        return dto;
+    }
 }

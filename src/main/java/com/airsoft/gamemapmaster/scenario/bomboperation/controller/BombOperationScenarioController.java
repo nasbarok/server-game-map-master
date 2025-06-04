@@ -54,7 +54,7 @@ public class BombOperationScenarioController {
         BombOperationScenario bombOperationScenario = bombOperationScenarioService.createBombOperationScenario(
                 scenario, bombTimer, defuseTime, activeSites, attackTeamName, defenseTeamName, showZones, showPointsOfInterest);
 
-        return new ResponseEntity<>(convertToDto(bombOperationScenario), HttpStatus.CREATED);
+        return new ResponseEntity<>(bombOperationScenario.toDto(), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
@@ -73,16 +73,16 @@ public class BombOperationScenarioController {
         BombOperationScenario bombOperationScenario = bombOperationScenarioService.updateBombOperationScenario(
                 id, bombTimer, defuseTime, activeSites, attackTeamName, defenseTeamName, showZones, showPointsOfInterest);
 
-        return new ResponseEntity<>(convertToDto(bombOperationScenario), HttpStatus.OK);
+        return new ResponseEntity<>(bombOperationScenario.toDto(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<BombOperationScenarioDto> getBombOperationScenarioById(@PathVariable Long id) {
         logger.info("Récupération du scénario d'Opération Bombe ID: {}", id);
 
-        BombOperationScenario bombOperationScenario = bombOperationScenarioService.getBombOperationScenarioById(id);
+        BombOperationScenario bombOperationScenario = bombOperationScenarioService.getBombOperationScenarioByScenarioId(id);
 
-        return new ResponseEntity<>(convertToDto(bombOperationScenario), HttpStatus.OK);
+        return new ResponseEntity<>(bombOperationScenario.toDto(), HttpStatus.OK);
     }
 
     @GetMapping("/by-scenario/{scenarioId}")
@@ -91,7 +91,7 @@ public class BombOperationScenarioController {
 
         BombOperationScenario bombOperationScenario = bombOperationScenarioService.getBombOperationScenarioByScenarioId(scenarioId);
 
-        return new ResponseEntity<>(convertToDto(bombOperationScenario), HttpStatus.OK);
+        return new ResponseEntity<>(bombOperationScenario.toDto(), HttpStatus.OK);
     }
 
     @GetMapping("/active/{scenarioId}")
@@ -104,7 +104,7 @@ public class BombOperationScenarioController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        return new ResponseEntity<>(convertToDto(bombOperationScenario), HttpStatus.OK);
+        return new ResponseEntity<>(bombOperationScenario.toDto(), HttpStatus.OK);
     }
 
 
@@ -203,7 +203,7 @@ public class BombOperationScenarioController {
 
         if (existingScenarioOpt.isPresent()) {
             logger.info("✅ BombOperationScenario existant trouvé pour le scénario ID: {}", scenarioId);
-            BombOperationScenarioDto dto = convertToDto(existingScenarioOpt.get());
+            BombOperationScenarioDto dto = existingScenarioOpt.get().toDto();
             return ResponseEntity.ok(dto);
         }
 
@@ -227,24 +227,9 @@ public class BombOperationScenarioController {
         BombOperationScenario savedScenario = bombOperationScenarioService.saveBombOperationScenario(newBombOperationScenario);
 
         logger.info("🎯 Nouveau BombOperationScenario créé avec ID interne: {}", savedScenario.getId());
-        BombOperationScenarioDto dto = convertToDto(savedScenario);
+        BombOperationScenarioDto dto = savedScenario.toDto();
 
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
-    }
-
-    private BombOperationScenarioDto convertToDto(BombOperationScenario bombOperationScenario) {
-        BombOperationScenarioDto dto = new BombOperationScenarioDto();
-        dto.setId(bombOperationScenario.getId());
-        dto.setScenarioId(bombOperationScenario.getScenario().getId());
-        dto.setBombTimer(bombOperationScenario.getBombTimer());
-        dto.setDefuseTime(bombOperationScenario.getDefuseTime());
-        dto.setActiveSites(bombOperationScenario.getActiveSites());
-        dto.setAttackTeamName(bombOperationScenario.getAttackTeamName());
-        dto.setDefenseTeamName(bombOperationScenario.getDefenseTeamName());
-        dto.setActive(bombOperationScenario.getActive());
-        dto.setShowZones(bombOperationScenario.getShowZones());
-        dto.setShowPointsOfInterest(bombOperationScenario.getShowPointsOfInterest());
-        return dto;
     }
 
     private BombSiteDto convertToDto(BombSite bombSite) {

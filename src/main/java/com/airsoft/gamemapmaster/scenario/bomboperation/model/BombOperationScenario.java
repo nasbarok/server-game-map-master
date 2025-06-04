@@ -1,12 +1,16 @@
 package com.airsoft.gamemapmaster.scenario.bomboperation.model;
 
 import com.airsoft.gamemapmaster.model.Scenario;
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombOperationScenarioDto;
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombSiteDto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
 import javax.persistence.*;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -56,4 +60,54 @@ public class BombOperationScenario {
     @JsonIgnore
     @OneToMany(mappedBy = "bombOperationScenario", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<BombOperationScore> scores = new HashSet<>();
+
+    public BombOperationScenarioDto toDto() {
+        BombOperationScenarioDto dto = new BombOperationScenarioDto();
+        dto.setId(this.id);
+        dto.setScenarioId(this.scenario != null ? this.scenario.getId() : null);
+        dto.setBombTimer(this.bombTimer);
+        dto.setDefuseTime(this.defuseTime);
+        dto.setActiveSites(this.activeSites);
+        dto.setAttackTeamName(this.attackTeamName);
+        dto.setDefenseTeamName(this.defenseTeamName);
+        dto.setActive(this.active);
+        dto.setShowZones(this.showZones);
+        dto.setShowPointsOfInterest(this.showPointsOfInterest);
+
+        // ✅ Ajout des BombSites
+        if (this.bombSites != null && !this.bombSites.isEmpty()) {
+            List<BombSiteDto> siteDtos = this.bombSites.stream()
+                    .map(site -> {
+                        BombSiteDto siteDto = new BombSiteDto();
+                        siteDto.setId(site.getId());
+                        siteDto.setName(site.getName());
+                        siteDto.setLatitude(site.getLatitude());
+                        siteDto.setLongitude(site.getLongitude());
+                        siteDto.setRadius(site.getRadius());
+                        siteDto.setBombOperationScenarioId(this.id);
+                        siteDto.setScenarioId(this.scenario != null ? this.scenario.getId() : null);
+                        return siteDto;
+                    })
+                    .collect(Collectors.toList());
+            dto.setBombSites(siteDtos);
+        }
+
+        // ✅ Ajout des Scores
+/*        if (this.scores != null && !this.scores.isEmpty()) {
+            List<BombOperationScoreDto> scoreDtos = this.scores.stream()
+                    .map(score -> {
+                        BombOperationScoreDto scoreDto = new BombOperationScoreDto();
+                        scoreDto.setId(score.getId());
+                        scoreDto.setTeamId(score.getTeamId());
+                        scoreDto.setPoints(score.getPoints());
+                        scoreDto.setGameSessionId(score.getGameSession() != null ? score.getGameSession().getId() : null);
+                        return scoreDto;
+                    })
+                    .collect(Collectors.toList());
+            dto.setScores(scoreDtos);
+        }*/
+
+        return dto;
+    }
+
 }

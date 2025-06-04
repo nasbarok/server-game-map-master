@@ -1,6 +1,6 @@
 package com.airsoft.gamemapmaster.scenario.bomboperation.service;
 
-import com.airsoft.gamemapmaster.model.User;
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombOperationSessionDto;
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombOperationSession;
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSite;
 
@@ -15,7 +15,7 @@ public interface BombOperationSessionService {
      * @param gameSessionId ID de la session de jeu
      * @return La session créée
      */
-    BombOperationSession createSession(Long scenarioId, Long gameSessionId);
+    BombOperationSessionDto createBombOperationSession(Long scenarioId, Long gameSessionId);
 
     /**
      * Récupère une session par son ID
@@ -29,8 +29,8 @@ public interface BombOperationSessionService {
      * @param gameSessionId ID de la session de jeu
      * @return La session trouvée
      */
-    BombOperationSession getSessionByGameSessionId(Long gameSessionId);
-
+    BombOperationSessionDto getBombOperationSessionDtoByGameSessionId(Long gameSessionId);
+    public BombOperationSession getBombOperationSessionByGameSessionId(Long gameSessionId);
 
     /**
      * Pose une bombe sur un site
@@ -103,4 +103,6 @@ public interface BombOperationSessionService {
     void saveTeamRoles(Long gameSessionId, Map<String, String> teamRoles);
 
     Map<String, String> getTeamRoles(Long gameSessionId);
+
+    List<BombSite> selectAndActivateRandomSites(Long gameSessionId);
 }
