@@ -134,6 +134,48 @@ public class BombOperationScenarioServiceImpl implements BombOperationScenarioSe
     }
 
     @Override
+    public BombOperationScenario updateBombOperationScenario(Long id, BombOperationScenario bombOperationScenario) {
+        logger.info("Mise à jour du scénario d'Opération Bombe ID: {}", id);
+
+        // Récupérer le scénario existant
+        BombOperationScenario existingScenario = getBombOperationScenarioById(id);
+
+        // Mettre à jour les champs nécessaires
+        if (bombOperationScenario.getBombTimer() != null) {
+            existingScenario.setBombTimer(bombOperationScenario.getBombTimer());
+        }
+
+        if (bombOperationScenario.getDefuseTime() != null) {
+            existingScenario.setDefuseTime(bombOperationScenario.getDefuseTime());
+        }
+        if (bombOperationScenario.getArmingTime() != null) {
+            existingScenario.setArmingTime(bombOperationScenario.getArmingTime());
+        }
+        if (bombOperationScenario.getActiveSites() != null) {
+            existingScenario.setActiveSites(bombOperationScenario.getActiveSites());
+        }
+
+        if (bombOperationScenario.getAttackTeamName() != null && !bombOperationScenario.getAttackTeamName().isEmpty()) {
+            existingScenario.setAttackTeamName(bombOperationScenario.getAttackTeamName());
+        }
+
+        if (bombOperationScenario.getDefenseTeamName() != null && !bombOperationScenario.getDefenseTeamName().isEmpty()) {
+            existingScenario.setDefenseTeamName(bombOperationScenario.getDefenseTeamName());
+        }
+
+        if (bombOperationScenario.getShowZones() != null) {
+            existingScenario.setShowZones(bombOperationScenario.getShowZones());
+        }
+
+        if (bombOperationScenario.getShowPointsOfInterest() != null) {
+            existingScenario.setShowPointsOfInterest(bombOperationScenario.getShowPointsOfInterest());
+        }
+
+        // Enregistrer les modifications
+        return bombOperationScenarioRepository.save(existingScenario);
+    }
+
+    @Override
     public BombOperationScenario getBombOperationScenarioById(Long id) {
         logger.info("Récupération du scénario d'Opération Bombe ID: {}", id);
         return bombOperationScenarioRepository.findById(id)

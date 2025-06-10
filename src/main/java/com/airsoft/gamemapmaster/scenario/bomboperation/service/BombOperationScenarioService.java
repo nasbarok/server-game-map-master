@@ -55,6 +55,9 @@ public interface BombOperationScenarioService {
             Boolean showPointsOfInterest
     );
 
+    BombOperationScenario updateBombOperationScenario(
+            Long id, BombOperationScenario bombOperationScenario
+    );
     /**
      * Récupère un scénario d'Opération Bombe par son ID
      * @param id ID du scénario

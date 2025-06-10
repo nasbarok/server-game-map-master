@@ -60,20 +60,13 @@ public class BombOperationScenarioController {
     @PutMapping("/{id}")
     public ResponseEntity<BombOperationScenarioDto> updateBombOperationScenario(
             @PathVariable Long id,
-            @RequestParam(required = false) Integer bombTimer,
-            @RequestParam(required = false) Integer defuseTime,
-            @RequestParam(required = false) Integer activeSites,
-            @RequestParam(required = false) String attackTeamName,
-            @RequestParam(required = false) String defenseTeamName,
-            @RequestParam(required = false) Boolean showZones,
-            @RequestParam(required = false) Boolean showPointsOfInterest) {
+            @RequestBody BombOperationScenario scenarioFromClient) {
 
-        logger.info("Mise à jour du scénario d'Opération Bombe ID: {}", id);
+        logger.info("🔧 [updateBombOperationScenario] [PUT /bomb-operation-scenarios/{}] Mise à jour du scénario", id);
+        logger.info("➡️  body: {}", scenarioFromClient);
 
-        BombOperationScenario bombOperationScenario = bombOperationScenarioService.updateBombOperationScenario(
-                id, bombTimer, defuseTime, activeSites, attackTeamName, defenseTeamName, showZones, showPointsOfInterest);
-
-        return new ResponseEntity<>(bombOperationScenario.toDto(), HttpStatus.OK);
+        BombOperationScenario updated = bombOperationScenarioService.updateBombOperationScenario(id, scenarioFromClient);
+        return ResponseEntity.ok(updated.toDto());
     }
 
     @GetMapping("/{id}")

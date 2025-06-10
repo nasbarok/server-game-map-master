@@ -552,6 +552,77 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         }
     }
 
+    @Override
+    @Transactional
+    public BombOperationSession bombArmed(Long sessionId, Long userId, Long siteId, Double latitude, Double longitude) {
+        logger.info("Notification d'armement de bombe terminé pour la session ID: {}, utilisateur ID: {}, site ID: {}",
+                sessionId, userId, siteId);
+
+        BombOperationSession session = getSessionById(sessionId);
+
+        // Vérifier si le joueur est dans la zone du site
+        BombSite site = isPlayerInActiveBombSite(sessionId, latitude, longitude);
+        if (site == null || !site.getId().equals(siteId)) {
+            logger.error("Le joueur ID: {} n'est pas dans la zone du site de bombe ID: {}", userId, siteId);
+            throw new BombOperationException("Le joueur n'est pas dans la zone du site de bombe");
+        }
+
+        // Mettre à jour l'état de la session
+        session.setGameState(BombOperationState.BOMB_PLANTED);
+        session.setBombPlantedTime(LocalDateTime.now());
+        session.setLastUpdated(LocalDateTime.now());
+
+        session = bombOperationSessionRepository.save(session);
+
+        // Envoyer notification WebSocket
+        bombOperationWebSocketNotifier.sendBombPlantedNotification(
+                sessionId,
+                userId,
+                siteId,
+                site.getName(),
+                session.getBombOperationScenario().getBombTimer()
+        );
+
+        logger.info("Bombe armée avec succès sur le site ID: {} par le joueur ID: {}", siteId, userId);
+        return session;
+    }
+
+    @Override
+    @Transactional
+    public BombOperationSession bombDisarmed(Long sessionId, Long userId, Long siteId, Double latitude, Double longitude) {
+        logger.info("Notification de désarmement de bombe terminé pour la session ID: {}, utilisateur ID: {}, site ID: {}",
+                sessionId, userId, siteId);
+
+        BombOperationSession session = getSessionById(sessionId);
+
+        // Vérifier si le joueur est dans la zone du site
+        BombSite site = isPlayerInActiveBombSite(sessionId, latitude, longitude);
+        if (site == null || !site.getId().equals(siteId)) {
+            logger.error("Le joueur ID: {} n'est pas dans la zone du site de bombe ID: {}", userId, siteId);
+            throw new BombOperationException("Le joueur n'est pas dans la zone du site de bombe");
+        }
+
+        // Vérifier que la bombe était bien armée
+        if (session.getGameState() != BombOperationState.BOMB_PLANTED) {
+            logger.error("Tentative de désarmement alors qu'aucune bombe n'est armée pour la session ID: {}", sessionId);
+            throw new BombOperationException("Aucune bombe n'est actuellement armée");
+        }
+
+        // Mettre à jour l'état de la session
+        session.setGameState(BombOperationState.BOMB_DEFUSED);
+        session.setDefuseStartTime(LocalDateTime.now()); // Utilisé comme temps de fin de désarmement
+        session.setLastUpdated(LocalDateTime.now());
+
+        session = bombOperationSessionRepository.save(session);
+
+        // Envoyer notification WebSocket
+        bombOperationWebSocketNotifier.sendDefuseSuccessNotification(sessionId, userId);
+
+        logger.info("Bombe désarmée avec succès sur le site ID: {} par le joueur ID: {}", siteId, userId);
+        return session;
+    }
+
+
 
     /**
      * Récupère les rôles des équipes pour une session de jeu

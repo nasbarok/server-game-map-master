@@ -94,38 +94,41 @@ public class TeamController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Team> updateTeam(@PathVariable Long id, @RequestBody Team team, Authentication authentication) {
+    public ResponseEntity<Team> updateTeam(@PathVariable Long id, @RequestBody Team teamRequest, Authentication authentication) {
 
         User userSender = userService.findByUsername(authentication.getName()).orElse(null);
+
         // 🔹 Étape 1 : Vérifier si l'équipe existe
         Optional<Team> optionalTeam = teamService.findById(id);
         if (optionalTeam.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
-        // 🔹 Étape 2 : Mettre à jour les champs de l'équipe
-        team.setId(id);
-        Team updatedTeam = teamService.save(team);
+        Team existingTeam = optionalTeam.get();
 
-        // 🔹 Étape 3 : Récupérer la carte associée à l'équipe
+        // 🔹 Étape 2 : Mettre à jour les champs nécessaires (seulement le nom ici)
+        existingTeam.setName(teamRequest.getName());
+
+        // 🔹 Étape 3 : Sauvegarder proprement sans perdre gameMap ou autres
+        Team updatedTeam = teamService.save(existingTeam);
+
         GameMap gameMap = updatedTeam.getGameMap();
 
-        // 🔹 Étape 4 : Construire le message WebSocket
+        // 🔹 Étape 4 : Construire et envoyer le message WebSocket
         WebSocketMessage teamUpdatedMessage = new WebSocketMessage(
                 "TEAM_UPDATED",
                 Map.of(
                         "teamId", updatedTeam.getId(),
                         "teamName", updatedTeam.getName(),
-                        "mapId", gameMap.getId()
+                        "mapId", gameMap != null ? gameMap.getId() : null
                 ),
-                userSender.getId(), // Nom de l’utilisateur authentifié
+                userSender != null ? userSender.getId() : null,
                 System.currentTimeMillis()
         );
 
-        // 🔹 Étape 5 : Diffuser le message à tous les clients connectés à cette carte
         messagingTemplate.convertAndSend("/topic/field/" + gameMap.getField().getId(), teamUpdatedMessage);
 
-        // 🔹 Étape 6 : Retourner l’équipe mise à jour dans la réponse
+        // 🔹 Étape 5 : Retour de l'équipe mise à jour
         return ResponseEntity.ok(updatedTeam);
     }
 

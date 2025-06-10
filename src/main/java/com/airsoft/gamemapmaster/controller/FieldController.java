@@ -59,6 +59,51 @@ public class FieldController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/{id}/with-role")
+    public ResponseEntity<?> getFieldWithRole(@PathVariable Long id, Principal principal) {
+        logger.info("🔎 [RESTORE] Récupération du terrain ID={} pour utilisateur '{}'", id, principal.getName());
+
+        String username = principal.getName();
+        Optional<User> userOpt = userService.findByUsername(username);
+
+        if (userOpt.isEmpty()) {
+            logger.warn("❌ Utilisateur '{}' non trouvé", username);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
+        }
+
+        User user = userOpt.get();
+
+        Optional<Field> fieldOpt = fieldService.findById(id);
+        if (fieldOpt.isEmpty()) {
+            logger.warn("❌ Terrain ID={} introuvable", id);
+            return ResponseEntity.notFound().build();
+        }
+
+        Field field = fieldOpt.get();
+        boolean isHost = field.getOwner().getId().equals(user.getId());
+
+        if (isHost) {
+            logger.info("✅ Utilisateur '{}' est propriétaire du terrain ID={}", username, id);
+            field.getOwner().setPassword(null);
+            return ResponseEntity.ok(Map.of(
+                    "active", field.getClosedAt() == null,
+                    "role", "HOST",
+                    "field", field
+            ));
+        }
+
+        logger.info("🔍 Vérification connexion joueur '{}' au terrain ID={}", username, id);
+
+
+        logger.info("✅ Utilisateur '{}' est connecté au terrain ID={}", username, id);
+        field.getOwner().setPassword(null);
+        return ResponseEntity.ok(Map.of(
+                "active", true,
+                "role", "GAMER",
+                "field", field
+        ));
+    }
+
     @PostMapping
     public ResponseEntity<Field> createField(@RequestBody Field field, @AuthenticationPrincipal UserDetails userDetails) {
         Optional<User> owner = userService.findByUsername(userDetails.getUsername()); // Récupère l'utilisateur depuis ton UserService
@@ -274,8 +319,6 @@ public class FieldController {
         // ❌ Aucun terrain actif trouvé pour ce joueur
         return ResponseEntity.ok(Map.of("active", false));
     }
-
-
 
 
 }

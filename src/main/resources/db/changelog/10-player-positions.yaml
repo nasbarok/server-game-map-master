@@ -118,3 +118,16 @@ databaseChangeLog:
                   defaultValueBoolean: false
                   constraints:
                     nullable: false
+  - changeSet:
+      id: 20250609-01-add-arming-time-to-bomb-operation-scenarios
+      author: nasbarok
+      changes:
+        - addColumn:
+            tableName: bomb_operation_scenarios
+            columns:
+              - column:
+                  name: arming_time
+                  type: INT
+                  defaultValueNumeric: 15
+                  constraints:
+                    nullable: false

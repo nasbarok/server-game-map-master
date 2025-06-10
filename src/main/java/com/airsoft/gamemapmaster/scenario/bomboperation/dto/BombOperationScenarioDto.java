@@ -9,6 +9,8 @@ public class BombOperationScenarioDto {
     private Long scenarioId;
     private Integer bombTimer;
     private Integer defuseTime;
+
+    private Integer armingTime;
     private Integer activeSites;
     private String attackTeamName;
     private String defenseTeamName;
@@ -50,6 +52,14 @@ public class BombOperationScenarioDto {
 
     public void setDefuseTime(Integer defuseTime) {
         this.defuseTime = defuseTime;
+    }
+
+    public Integer getArmingTime() {
+        return armingTime;
+    }
+
+    public void setArmingTime(Integer armingTime) {
+        this.armingTime = armingTime;
     }
 
     public Integer getActiveSites() {

@@ -1,5 +1,7 @@
 package com.airsoft.gamemapmaster.scenario.bomboperation.controller;
 
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombArmedRequestDto;
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombDisarmedRequestDto;
 import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombOperationSessionDto;
 import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombSiteDto;
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombOperationSession;
@@ -193,5 +195,51 @@ public class BombOperationSessionController {
         }
 
         return ResponseEntity.ok(selectedBombSiteDtos);
+    }
+
+
+    /**
+     * Endpoint pour notifier qu'une bombe a été armée (gestion côté Flutter terminée)
+     */
+    @PostMapping("/{sessionId}/bomb-armed")
+    public ResponseEntity<BombOperationSessionDto> bombArmed(
+            @PathVariable Long sessionId,
+            @RequestBody BombArmedRequestDto request) {
+
+        logger.info("Notification d'armement de bombe terminé pour la session ID: {}, utilisateur ID: {}, site ID: {}",
+                sessionId, request.getUserId(), request.getSiteId());
+
+        BombOperationSession session = bombOperationSessionService.bombArmed(
+                sessionId,
+                request.getUserId(),
+                request.getSiteId(),
+                request.getLatitude(),
+                request.getLongitude()
+        );
+
+        return new ResponseEntity<>(session.toDto(null), HttpStatus.OK);
+    }
+
+
+    /**
+     * Endpoint pour notifier qu'une bombe a été désarmée (gestion côté Flutter terminée)
+     */
+    @PostMapping("/{sessionId}/bomb-disarmed")
+    public ResponseEntity<BombOperationSessionDto> bombDisarmed(
+            @PathVariable Long sessionId,
+            @RequestBody BombDisarmedRequestDto request) {
+
+        logger.info("Notification de désarmement de bombe terminé pour la session ID: {}, utilisateur ID: {}, site ID: {}",
+                sessionId, request.getUserId(), request.getSiteId());
+
+        BombOperationSession session = bombOperationSessionService.bombDisarmed(
+                sessionId,
+                request.getUserId(),
+                request.getSiteId(),
+                request.getLatitude(),
+                request.getLongitude()
+        );
+
+        return new ResponseEntity<>(session.toDto(null), HttpStatus.OK);
     }
 }

@@ -101,7 +101,27 @@ public interface BombOperationSessionService {
     Object getGameSessionState(Long gameSessionId);
 
     void saveTeamRoles(Long gameSessionId, Map<String, String> teamRoles);
+    /**
+     * Notifie qu'une bombe a été armée (processus géré côté Flutter)
+     * @param sessionId ID de la session
+     * @param userId ID de l'utilisateur qui a armé
+     * @param siteId ID du site de bombe
+     * @param latitude Latitude du joueur
+     * @param longitude Longitude du joueur
+     * @return La session mise à jour
+     */
+    BombOperationSession bombArmed(Long sessionId, Long userId, Long siteId, Double latitude, Double longitude);
 
+    /**
+     * Notifie qu'une bombe a été désarmée (processus géré côté Flutter)
+     * @param sessionId ID de la session
+     * @param userId ID de l'utilisateur qui a désarmé
+     * @param siteId ID du site de bombe
+     * @param latitude Latitude du joueur
+     * @param longitude Longitude du joueur
+     * @return La session mise à jour
+     */
+    BombOperationSession bombDisarmed(Long sessionId, Long userId, Long siteId, Double latitude, Double longitude);
     Map<String, String> getTeamRoles(Long gameSessionId);
 
     List<BombSite> selectAndActivateRandomSites(Long gameSessionId);

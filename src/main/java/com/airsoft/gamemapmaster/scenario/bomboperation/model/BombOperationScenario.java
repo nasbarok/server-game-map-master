@@ -33,8 +33,9 @@ public class BombOperationScenario {
     private Integer bombTimer = 45; // Temps avant explosion de la bombe
 
     @Column(nullable = false)
-    private Integer defuseTime = 10; // Temps pour désamorcer
-
+    private Integer defuseTime = 25; // Temps pour désamorcer
+    @Column(nullable = false)
+    private Integer armingTime = 15; // Temps pour poser la bombe
     @Column(nullable = false)
     private Integer activeSites = 2; // Nombre de sites actifs par round
 
@@ -67,6 +68,7 @@ public class BombOperationScenario {
         dto.setScenarioId(this.scenario != null ? this.scenario.getId() : null);
         dto.setBombTimer(this.bombTimer);
         dto.setDefuseTime(this.defuseTime);
+        dto.setArmingTime(this.armingTime);
         dto.setActiveSites(this.activeSites);
         dto.setAttackTeamName(this.attackTeamName);
         dto.setDefenseTeamName(this.defenseTeamName);
