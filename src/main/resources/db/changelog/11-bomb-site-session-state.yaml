@@ -1,0 +1,140 @@
+databaseChangeLog:
+  - changeSet:
+      id: 11-create-bomb-site-session-state-table
+      author: system
+      changes:
+        - createTable:
+            tableName: bomb_site_session_states
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: game_session_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: original_bomb_site_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: latitude
+                  type: DOUBLE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: longitude
+                  type: DOUBLE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: radius
+                  type: DOUBLE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+                  defaultValue: 'INACTIVE'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: activated_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+              - column:
+                  name: armed_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+              - column:
+                  name: disarmed_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+              - column:
+                  name: exploded_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+              - column:
+                  name: armed_by_user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: disarmed_by_user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: bomb_timer
+                  type: INT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: expected_explosion_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: 12-create-bomb-site-session-state-indexes
+      author: system
+      changes:
+        - createIndex:
+            indexName: idx_bomb_site_session_state_game_session
+            tableName: bomb_site_session_states
+            columns:
+              - column:
+                  name: game_session_id
+        - createIndex:
+            indexName: idx_bomb_site_session_state_original_site
+            tableName: bomb_site_session_states
+            columns:
+              - column:
+                  name: original_bomb_site_id
+        - createIndex:
+            indexName: idx_bomb_site_session_state_status
+            tableName: bomb_site_session_states
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            indexName: idx_bomb_site_session_state_game_session_original
+            tableName: bomb_site_session_states
+            unique: true
+            columns:
+              - column:
+                  name: game_session_id
+              - column:
+                  name: original_bomb_site_id
+      rollback:
+        - dropColumn:
+            tableName: bomb_operation_scenarios
+            columnName: arming_time
+

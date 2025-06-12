@@ -21,6 +21,8 @@ public class BombOperationSessionDto {
     private List<BombSiteDto> toActiveBombSites;
     private List<BombSiteDto> activeBombSites;
     private List<BombSiteDto> disableBombSites;
+
+    private List<BombSiteDto> explodedBombSites;
     private Map<Long, String> teamRoles;
     public Long getId() {
         return id;
@@ -133,6 +135,14 @@ public class BombOperationSessionDto {
 
     public void setDisableBombSites(List<BombSiteDto> disableBombSites) {
         this.disableBombSites = disableBombSites;
+    }
+
+    public List<BombSiteDto> getExplodedBombSites() {
+        return explodedBombSites;
+    }
+
+    public void setExplodedBombSites(List<BombSiteDto> explodedBombSites) {
+        this.explodedBombSites = explodedBombSites;
     }
 }
 

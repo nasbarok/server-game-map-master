@@ -10,8 +10,22 @@ import lombok.Data;
 public class BombDisarmedRequestDto {
     
     private Long userId;
-    private Long siteId;
-    private Double latitude;
-    private Double longitude;
+    private Long bombSiteId;
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public Long getBombSiteId() {
+        return bombSiteId;
+    }
+
+    public void setBombSiteId(Long bombSiteId) {
+        this.bombSiteId = bombSiteId;
+    }
 }
 

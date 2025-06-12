@@ -13,6 +13,7 @@ import com.airsoft.gamemapmaster.scenario.bomboperation.repository.BombSiteRepos
 import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombOperationPlayerStateService;
 import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombOperationScenarioService;
 import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombOperationSessionService;
+import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombSiteSessionStateService;
 import com.airsoft.gamemapmaster.scenario.bomboperation.websocket.BombOperationWebSocketNotifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,8 +50,12 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
 
     @Autowired
     private BombOperationWebSocketNotifier bombOperationWebSocketNotifier;
+
     @Autowired
     private BombOperationTeamRoleRepository bombOperationTeamRoleRepository;
+
+    @Autowired
+    private BombSiteSessionStateService bombSiteSessionStateService;
 
 
     @Override
@@ -62,6 +67,8 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         // Vérifier si une session existe déjà pour cette session de jeu
         bombOperationSessionRepository.findByGameSessionId(gameSessionId).ifPresent(session -> {
             logger.info("Une session existe déjà pour la session de jeu ID: {}, elle sera supprimée", gameSessionId);
+            // Supprimer aussi les états de sites associés
+            bombSiteSessionStateService.deleteAllSessionStates(gameSessionId);
             bombOperationSessionRepository.delete(session);
         });
 
@@ -78,6 +85,21 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         bombOperationSession = bombOperationSessionRepository.save(bombOperationSession);
         logger.info("Session d'Opération Bombe créée avec l'ID: {}", bombOperationSession.getId());
 
+        // ✨ Créer automatiquement les BombSiteSessionState
+        Set<BombSite> allBombSites = bombOperationScenario.getBombSites();
+        Map<Long, BombSite> bombSiteMap = allBombSites.stream()
+                .collect(Collectors.toMap(BombSite::getId, site -> site));
+
+        List<BombSiteSessionState> sessionStates = bombSiteSessionStateService.createSessionStatesFromBombSites(
+                gameSessionId, new ArrayList<>(allBombSites));
+
+        // ✨ Sélectionner et activer aléatoirement les sites selon le scénario
+        int numberOfSitesToActivate = bombOperationScenario.getActiveSites();
+        List<BombSiteSessionState> activatedSites = bombSiteSessionStateService.selectAndActivateRandomSites(
+                gameSessionId, numberOfSitesToActivate);
+
+        logger.info("✅ {} BombSiteSessionState créés, {} sites activés aléatoirement",
+                sessionStates.size(), activatedSites.size());
 
         // Récupération explicite des rôles associés à cette session
         List<BombOperationTeamRole> roles = bombOperationTeamRoleRepository.findByGameSessionId(gameSessionId);
@@ -87,26 +109,33 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
             teamRoles.put(role.getTeamId(), role.getRole());
         }
 
-        //Recuperer les BombSites du scénario
-        Set<BombSite> disableBombSites = bombOperationScenario.getBombSites();
-        //Valeur définis du nombre de site à activer aléatoirement
-        List<BombSite> toActiveBombSites = selectAndActivateRandomSites(new ArrayList<>(disableBombSites), bombOperationScenario.getActiveSites());
-
+        // ✨ NOUVELLE LOGIQUE : Utiliser les BombSiteSessionState pour construire les listes
+        // Sites à activer = tous les sites ACTIVE
+        List<BombSiteSessionState> activeSites = bombSiteSessionStateService.getActiveSites(gameSessionId);
         List<BombSiteDto> toActiveBombSitesDto = new ArrayList<>();
-        for (BombSite site : toActiveBombSites) {
-            toActiveBombSitesDto.add(site.toDto());
+        for (BombSiteSessionState state : activeSites) {
+            BombSite originalSite = bombSiteMap.get(state.getOriginalBombSiteId());
+            if (originalSite != null) {
+                toActiveBombSitesDto.add(convertSessionStateToDto(state, originalSite));
+            }
         }
 
+        // Sites désactivés = tous les sites INACTIVE
         List<BombSiteDto> disableBombSitesDto = new ArrayList<>();
-        for (BombSite site : disableBombSites) {
-            disableBombSitesDto.add(site.toDto());
+        for (BombSite bombSite : allBombSites) {
+            disableBombSitesDto.add(bombSite.toDto());
         }
 
         // Attacher ce map à une DTO enrichie
         BombOperationSessionDto dto = bombOperationSession.toDto(teamRoles);
         dto.setToActiveBombSites(toActiveBombSitesDto);
         dto.setDisableBombSites(disableBombSitesDto);
-        logger.info("Session d'Opération Bombe avec toActiveBombSites "+toActiveBombSites.size()+" sites et disableBombSites "+disableBombSites.size()+" sites");
+        dto.setActiveBombSites(new ArrayList<>());
+        dto.setExplodedBombSites(new ArrayList<>());
+
+        logger.info("Session d'Opération Bombe avec {} sites actifs et {} sites total créés via BombSiteSessionState",
+                toActiveBombSitesDto.size(), disableBombSitesDto.size());
+
         return dto;
     }
 
@@ -139,35 +168,58 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
             rolesMap.put(role.getTeamId(), role.getRole());
         }
 
+        // 🧠 Préparer l'accès aux BombSites originaux
+        BombOperationScenario scenario = bombOperationSession.getBombOperationScenario();
+        Set<BombSite> allBombSites = scenario.getBombSites();
+        Map<Long, BombSite> bombSiteMap = allBombSites.stream()
+                .collect(Collectors.toMap(BombSite::getId, site -> site));
+
         // 🧠 Enrichissement du DTO
         BombOperationSessionDto dto = bombOperationSession.toDto(rolesMap);
 
-        // 🧩 Extraction des sites depuis le scénario lié
-        Set<BombSite> allSites = bombOperationSession.getBombOperationScenario().getBombSites();
-        List<BombSiteDto> allSitesDto = allSites.stream()
-                .map(BombSite::toDto)
-                .collect(Collectors.toList());
+        // Sites actifs
+        List<BombSiteSessionState> toActiveStates = bombSiteSessionStateService.getActiveSites(gameSessionId);
+        List<BombSiteDto> toActiveBombSitesDto = new ArrayList<>();
+        for (BombSiteSessionState state : toActiveStates) {
+            BombSite original = bombSiteMap.get(state.getOriginalBombSiteId());
+            if (original != null) {
+                toActiveBombSitesDto.add(convertSessionStateToDto(state, original));
+            }
+        }
 
-        // 🧩 Sites désactivés = tous
-        dto.setDisableBombSites(allSitesDto);
+        List<BombSiteSessionState> armedStates = bombSiteSessionStateService.getArmedSites(gameSessionId);
+        List<BombSiteDto> armedBombSitesDto = new ArrayList<>();
+        for (BombSiteSessionState state : armedStates) {
+            BombSite original = bombSiteMap.get(state.getOriginalBombSiteId());
+            if (original != null) {
+                armedBombSitesDto.add(convertSessionStateToDto(state, original));
+            }
+        }
 
-        // 🧩 Sites à activer (actifs = true)
-        List<BombSiteDto> toActivate = allSites.stream()
-                .filter(BombSite::isActive)
-                .map(BombSite::toDto)
-                .collect(Collectors.toList());
-        dto.setToActiveBombSites(toActivate);
+            // Sites explosés
+        List<BombSiteSessionState> explodedStates = bombSiteSessionStateService.getExplodedSites(gameSessionId);
+        List<BombSiteDto> explodedBombSitesDto = new ArrayList<>();
+        for (BombSiteSessionState state : explodedStates) {
+            BombSite original = bombSiteMap.get(state.getOriginalBombSiteId());
+            if (original != null) {
+                explodedBombSitesDto.add(convertSessionStateToDto(state, original));
+            }
+        }
 
-        // 🧩 Sites actifs dans cette session (via champ activeBombSiteIds)
-        List<Long> ids = bombOperationSession.getActiveBombSiteIds();
-        List<BombSiteDto> active = allSites.stream()
-                .filter(site -> ids.contains(site.getId()))
-                .map(BombSite::toDto)
-                .collect(Collectors.toList());
-        dto.setActiveBombSites(active);
+        // Sites désactivés = tous les sites définis dans le scénario
+        List<BombSiteDto> disableBombSitesDto = new ArrayList<>();
+        for (BombSite site : allBombSites) {
+            disableBombSitesDto.add(site.toDto());
+        }
 
-        logger.info("✅ DTO enrichi : toActivate={}, disable={}, active={}",
-                toActivate.size(), allSitesDto.size(), active.size());
+        // Remplir le DTO avec les listes correctement enrichies
+        dto.setActiveBombSites(armedBombSitesDto);
+        dto.setExplodedBombSites(explodedBombSitesDto);
+        dto.setToActiveBombSites(toActiveBombSitesDto);
+        dto.setDisableBombSites(disableBombSitesDto);
+
+        logger.info("✅ DTO enrichi via BombSiteSessionState : a activer={}, amorcé={},explosés={}, désactivés={}",
+                toActiveBombSitesDto.size(),armedBombSitesDto.size(), explodedBombSitesDto.size(), disableBombSitesDto.size());
 
         return dto;
     }
@@ -184,6 +236,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         logger.info("Session d'Opération Bombe trouvée pour la session de jeu ID: {}", gameSessionId);
         return bombOperationSession;
     }
+
     @Override
     @Transactional
     public BombOperationSession plantBomb(Long sessionId, Long userId, Long siteId, Double latitude, Double longitude) {
@@ -354,9 +407,10 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
 
         // Mettre à jour la session
         session.setGameState(BombOperationState.BOMB_DEFUSED);
+        session.setLastUpdated(LocalDateTime.now());
 
         session = bombOperationSessionRepository.save(session);
-        logger.info("Bombe désamorcée par l'utilisateur ID: {} pour la session ID: {}", userId, sessionId);
+        logger.info("Bombe désarmée avec succès par l'utilisateur ID: {} pour la session ID: {}", userId, sessionId);
 
         // Mettre à jour le score du joueur
         bombOperationPlayerStateService.incrementBombsDefused(sessionId, userId);
@@ -381,29 +435,21 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
     @Override
     @Transactional
     public BombOperationSession explodeBomb(Long sessionId) {
-        logger.info("Explosion de la bombe pour la session ID: {}", sessionId);
+        logger.info("Explosion de bombe pour la session ID: {}", sessionId);
 
         BombOperationSession session = getSessionById(sessionId);
 
         // Vérifier l'état de la session
-        if (session.getGameState() != BombOperationState.BOMB_PLANTED && session.getGameState() != BombOperationState.DEFUSING) {
-            logger.error("État de jeu invalide pour l'explosion de la bombe: {}", session.getGameState());
+        if (session.getGameState() != BombOperationState.BOMB_PLANTED) {
+            logger.error("État de jeu invalide pour faire exploser une bombe: {}", session.getGameState());
             throw new BombOperationException.InvalidGameStateException(
                     session.getGameState().toString(),
-                    BombOperationState.BOMB_PLANTED + " ou " + BombOperationState.DEFUSING);
-        }
-
-        // Vérifier le temps d'explosion
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime bombPlantedTime = session.getBombPlantedTime();
-
-        if (bombPlantedTime.plusSeconds(session.getBombOperationScenario().getBombTimer()).isAfter(now)) {
-            logger.error("Le temps d'explosion n'est pas écoulé");
-            throw new BombOperationException("Le temps d'explosion n'est pas écoulé");
+                    BombOperationState.BOMB_PLANTED.toString());
         }
 
         // Mettre à jour la session
         session.setGameState(BombOperationState.BOMB_EXPLODED);
+        session.setLastUpdated(LocalDateTime.now());
 
         session = bombOperationSessionRepository.save(session);
         logger.info("Bombe explosée pour la session ID: {}", sessionId);
@@ -505,30 +551,20 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         logger.info("Suppression de la session d'Opération Bombe ID: {}", sessionId);
 
         BombOperationSession session = getSessionById(sessionId);
+
+        // Supprimer les états de sites associés
+        bombSiteSessionStateService.deleteAllSessionStates(session.getGameSessionId());
+
         bombOperationSessionRepository.delete(session);
-        logger.info("Session d'Opération Bombe supprimée: {}", sessionId);
+        logger.info("Session d'Opération Bombe ID: {} supprimée avec succès", sessionId);
     }
 
     @Override
     public Object getGameSessionState(Long gameSessionId) {
-        BombOperationSession session = getBombOperationSessionByGameSessionId(gameSessionId);
-
-        return Map.of(
-                "type", "BOMB_OPERATION_UPDATE",
-                "gameSessionId", session.getGameSessionId(),
-                "state", session.getGameState().toString(),
-                "activeBombSites", session.getActiveBombSiteIds(),
-                "plantedBombSites", session.getGameState() == BombOperationState.BOMB_PLANTED
-                        || session.getGameState() == BombOperationState.DEFUSING
-                        || session.getGameState() == BombOperationState.BOMB_EXPLODED
-                        || session.getGameState() == BombOperationState.BOMB_DEFUSED
-                        ? session.getActiveBombSiteIds() : List.of(),
-                "bombTimeRemaining", calculateRemainingTime(session),
-                "round", session.getCurrentRound(),
-                "attackScore", session.getAttackTeamScore(),
-                "defenseScore", session.getDefenseTeamScore()
-        );
+        logger.info("Récupération de l'état de la session de jeu ID: {}", gameSessionId);
+        return getBombOperationSessionDtoByGameSessionId(gameSessionId);
     }
+
     /**
      * Sauvegarde les rôles des équipes pour une session de jeu
      */
@@ -559,29 +595,40 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
                 sessionId, userId, siteId);
 
         BombOperationSession session = getSessionById(sessionId);
+        Long gameSessionId = session.getGameSessionId();
 
-        // Vérifier si le joueur est dans la zone du site
-        BombSite site = isPlayerInActiveBombSite(sessionId, latitude, longitude);
-        if (site == null || !site.getId().equals(siteId)) {
-            logger.error("Le joueur ID: {} n'est pas dans la zone du site de bombe ID: {}", userId, siteId);
-            throw new BombOperationException("Le joueur n'est pas dans la zone du site de bombe");
+        // ✨ NOUVELLE LOGIQUE : Utiliser BombSiteSessionState
+        try {
+            // Récupérer le timer de bombe du scénario
+            Integer bombTimer = session.getBombOperationScenario().getBombTimer();
+
+            // Armer la bombe via le service BombSiteSessionState
+            BombSiteSessionState armedSite = bombSiteSessionStateService.armBomb(
+                    gameSessionId, siteId, userId, bombTimer);
+
+            // Mettre à jour l'état de la session
+            session.setGameState(BombOperationState.BOMB_PLANTED);
+            session.setBombPlantedTime(LocalDateTime.now());
+            session.setLastUpdated(LocalDateTime.now());
+
+            session = bombOperationSessionRepository.save(session);
+
+            // Envoyer notification WebSocket
+/*            bombOperationWebSocketNotifier.sendBombPlantedNotification(
+                    sessionId,
+                    userId,
+                    siteId,
+                    armedSite.getName(),
+                    bombTimer
+            );*/
+
+            logger.info("✅ Bombe armée avec succès sur le site '{}' (ID: {}) par le joueur ID: {}",
+                    armedSite.getName(), siteId, userId);
+
+        } catch (Exception e) {
+            logger.error("❌ Erreur lors de l'armement de la bombe: {}", e.getMessage(), e);
+            throw new BombOperationException("Erreur lors de l'armement de la bombe: " + e.getMessage());
         }
-
-        // Mettre à jour l'état de la session
-        session.setGameState(BombOperationState.BOMB_PLANTED);
-        session.setBombPlantedTime(LocalDateTime.now());
-        session.setLastUpdated(LocalDateTime.now());
-
-        session = bombOperationSessionRepository.save(session);
-
-        // Envoyer notification WebSocket
-        bombOperationWebSocketNotifier.sendBombPlantedNotification(
-                sessionId,
-                userId,
-                siteId,
-                site.getName(),
-                session.getBombOperationScenario().getBombTimer()
-        );
 
         logger.info("Bombe armée avec succès sur le site ID: {} par le joueur ID: {}", siteId, userId);
         return session;
@@ -594,34 +641,43 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
                 sessionId, userId, siteId);
 
         BombOperationSession session = getSessionById(sessionId);
+        Long gameSessionId = session.getGameSessionId();
 
-        // Vérifier si le joueur est dans la zone du site
-        BombSite site = isPlayerInActiveBombSite(sessionId, latitude, longitude);
-        if (site == null || !site.getId().equals(siteId)) {
-            logger.error("Le joueur ID: {} n'est pas dans la zone du site de bombe ID: {}", userId, siteId);
-            throw new BombOperationException("Le joueur n'est pas dans la zone du site de bombe");
+        // ✨ NOUVELLE LOGIQUE : Utiliser BombSiteSessionState
+        try {
+            // Vérifier que la bombe était bien armée
+            if (session.getGameState() != BombOperationState.BOMB_PLANTED) {
+                logger.error("Tentative de désarmement alors qu'aucune bombe n'est armée pour la session ID: {}", sessionId);
+                throw new BombOperationException("Aucune bombe n'est actuellement armée");
+            }
+
+            // Désarmer la bombe via le service BombSiteSessionState
+            BombSiteSessionState disarmedSite = bombSiteSessionStateService.disarmBomb(
+                    gameSessionId, siteId, userId);
+
+            // Mettre à jour l'état de la session
+            session.setGameState(BombOperationState.BOMB_DEFUSED);
+            session.setDefuseStartTime(LocalDateTime.now()); // Utilisé comme temps de fin de désarmement
+            session.setLastUpdated(LocalDateTime.now());
+
+            session = bombOperationSessionRepository.save(session);
+
+            // Envoyer notification WebSocket
+/*
+            bombOperationWebSocketNotifier.sendDefuseSuccessNotification(sessionId, userId);
+*/
+
+            logger.info("✅ Bombe désarmée avec succès sur le site '{}' (ID: {}) par le joueur ID: {}",
+                    disarmedSite.getName(), siteId, userId);
+
+        } catch (Exception e) {
+            logger.error("❌ Erreur lors du désarmement de la bombe: {}", e.getMessage(), e);
+            throw new BombOperationException("Erreur lors du désarmement de la bombe: " + e.getMessage());
         }
-
-        // Vérifier que la bombe était bien armée
-        if (session.getGameState() != BombOperationState.BOMB_PLANTED) {
-            logger.error("Tentative de désarmement alors qu'aucune bombe n'est armée pour la session ID: {}", sessionId);
-            throw new BombOperationException("Aucune bombe n'est actuellement armée");
-        }
-
-        // Mettre à jour l'état de la session
-        session.setGameState(BombOperationState.BOMB_DEFUSED);
-        session.setDefuseStartTime(LocalDateTime.now()); // Utilisé comme temps de fin de désarmement
-        session.setLastUpdated(LocalDateTime.now());
-
-        session = bombOperationSessionRepository.save(session);
-
-        // Envoyer notification WebSocket
-        bombOperationWebSocketNotifier.sendDefuseSuccessNotification(sessionId, userId);
 
         logger.info("Bombe désarmée avec succès sur le site ID: {} par le joueur ID: {}", siteId, userId);
         return session;
     }
-
 
 
     /**
@@ -680,27 +736,6 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
     }
 
 
-    public List<BombSite> selectAndActivateRandomSites(List<BombSite> bombSites,int nbToActive) {
-        if (nbToActive <= 0 || bombSites.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        // Mélanger les sites pour une sélection aléatoire
-        Collections.shuffle(bombSites);
-
-        // Limiter le nombre de sites à activer
-        int toActivate = Math.min(nbToActive, bombSites.size());
-
-        // Sélectionner les sites à activer
-        List<BombSite> selectedSites = bombSites.subList(0, toActivate);
-
-        // Activer les sites sélectionnés
-        for (BombSite site : selectedSites) {
-            site.setActive(true);
-        }
-
-        return selectedSites;
-    }
     private int calculateRemainingTime(BombOperationSession session) {
         if (session.getGameState() != BombOperationState.BOMB_PLANTED) return 0;
 
@@ -711,6 +746,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
 
     /**
      * Calcule la distance en mètres entre deux points géographiques
+     *
      * @param lat1 Latitude du premier point
      * @param lon1 Longitude du premier point
      * @param lat2 Latitude du deuxième point
@@ -731,4 +767,24 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
 
         return R * c * 1000; // Distance en mètres
     }
+
+    /**
+     * Convertit un BombSiteSessionState en BombSiteDto
+     *
+     * @param sessionState L'état de session à convertir
+     * @return Le DTO correspondant
+     */
+    private BombSiteDto convertSessionStateToDto(BombSiteSessionState sessionState, BombSite site) {
+        BombSiteDto dto = new BombSiteDto();
+        dto.setId(sessionState.getOriginalBombSiteId());
+        dto.setName(sessionState.getName());
+        dto.setLatitude(sessionState.getLatitude());
+        dto.setLongitude(sessionState.getLongitude());
+        dto.setRadius(sessionState.getRadius());
+        dto.setActive(sessionState.isActive());
+        dto.setBombOperationScenarioId(site.getBombOperationScenario().getId());
+        dto.setScenarioId(site.getScenarioId());
+        return dto;
+    }
 }
+

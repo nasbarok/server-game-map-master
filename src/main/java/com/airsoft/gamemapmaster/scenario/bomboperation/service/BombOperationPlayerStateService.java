@@ -79,7 +79,7 @@ public interface BombOperationPlayerStateService {
      * @param userId ID de l'utilisateur
      * @return L'état du joueur mis à jour
      */
-    BombOperationPlayerState incrementBombsPlanted(Long sessionId, Long userId);
+    BombOperationPlayerState incrementBombsPlanted(Long bombOperationSession, Long userId);
 
     /**
      * Incrémente le compteur de bombes désamorcées pour un joueur

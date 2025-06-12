@@ -21,9 +21,10 @@ public class BombOperationWebSocketNotifier {
     /**
      * Envoie une notification de bombe armée (version simplifiée)
      */
-    public void sendBombPlantedNotification(Long sessionId, Long userId, Long siteId, String siteName, Integer bombTimer) {
+    public void sendBombPlantedNotification(Long fieldId, Long gameSessionId, Long userId, Long siteId, String siteName, Integer bombTimer) {
         Map<String, Object> data = new HashMap<>();
-        data.put("sessionId", sessionId);
+        data.put("gameSessionId", gameSessionId);
+        data.put("fieldId", fieldId);
         data.put("userId", userId);
         data.put("siteId", siteId);
         data.put("siteName", siteName);
@@ -32,26 +33,32 @@ public class BombOperationWebSocketNotifier {
 
         WebSocketMessage message = new WebSocketMessage();
         message.setType("BOMB_PLANTED");
+        message.setSenderId(userId);
         message.setPayload(data);
 
-        sendToGameSession(sessionId, message);
+        sendToGameSession(fieldId, message);
     }
 
     /**
      * Envoie une notification de bombe désarmée (version simplifiée)
      */
-    public void sendDefuseSuccessNotification(Long sessionId, Long userId) {
+    public void sendDefuseSuccessNotification(Long fieldId, Long gameSessionId, Long userId, Long siteId, String siteName) {
         Map<String, Object> data = new HashMap<>();
-        data.put("sessionId", sessionId);
+        data.put("fieldId", fieldId);
+        data.put("gameSessionId", gameSessionId);
         data.put("userId", userId);
+        data.put("siteId", siteId);
+        data.put("siteName", siteName);
         data.put("timestamp", System.currentTimeMillis());
 
         WebSocketMessage message = new WebSocketMessage();
         message.setType("BOMB_DEFUSED");
+        message.setSenderId(userId);
         message.setPayload(data);
 
-        sendToGameSession(sessionId, message);
+        sendToGameSession(fieldId, message);
     }
+
 
     /**
      * Envoie une notification d'explosion de bombe

@@ -19,11 +19,16 @@ public enum BombSiteStatus {
     /**
      * Site désamorcé avec succès
      */
-    DEFUSED,
+    DISARMED,
     
     /**
      * Site où la bombe a explosé
      */
-    EXPLODED
+    EXPLODED,
+
+    /**
+     * Site inactif, non disponible pour l'amorçage
+     */
+    INACTIVE
 }
 
