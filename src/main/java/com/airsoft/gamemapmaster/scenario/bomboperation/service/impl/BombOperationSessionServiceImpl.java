@@ -781,7 +781,9 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         dto.setLatitude(sessionState.getLatitude());
         dto.setLongitude(sessionState.getLongitude());
         dto.setRadius(sessionState.getRadius());
-        dto.setActive(sessionState.isActive());
+        BombSiteStatus status = sessionState.getStatus();
+        boolean active = (status == BombSiteStatus.ARMED);
+        dto.setActive(active);
         dto.setBombOperationScenarioId(site.getBombOperationScenario().getId());
         dto.setScenarioId(site.getScenarioId());
         return dto;

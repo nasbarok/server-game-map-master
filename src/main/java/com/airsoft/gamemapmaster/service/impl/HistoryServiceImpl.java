@@ -1,6 +1,7 @@
 package com.airsoft.gamemapmaster.service.impl;
 
 import com.airsoft.gamemapmaster.model.*;
+import com.airsoft.gamemapmaster.position.repository.PlayerPositionRepository;
 import com.airsoft.gamemapmaster.repository.*;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.repository.TreasureHuntScoreRepository;
 import com.airsoft.gamemapmaster.scenario.treasurehunt.service.TreasureHuntService;
@@ -8,6 +9,7 @@ import com.airsoft.gamemapmaster.service.HistoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
 import java.util.*;
 
@@ -38,6 +40,9 @@ public class HistoryServiceImpl implements HistoryService {
 
     @Autowired
     private FieldUserHistoryRepository fieldUserHistoryRepository;
+
+    @Autowired
+    private PlayerPositionRepository playerPositionRepository;
     /**
      * Récupère tous les terrains pour un utilisateur donné
      */
@@ -76,7 +81,17 @@ public class HistoryServiceImpl implements HistoryService {
     /**
      * Supprime une session de jeu
      */
+    @Override
+    @Transactional
     public void deleteGameSession(Long id) {
+        if (!gameSessionRepository.existsById(id)) {
+            throw new EntityNotFoundException("Session de jeu non trouvée pour l'id : " + id);
+        }
+
+        // Supprime d'abord les positions liées
+        playerPositionRepository.deleteByGameSessionId(id);
+
+        // Puis la session
         gameSessionRepository.deleteById(id);
     }
 

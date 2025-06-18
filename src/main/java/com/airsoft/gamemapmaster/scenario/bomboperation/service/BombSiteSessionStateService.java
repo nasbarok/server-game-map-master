@@ -1,5 +1,7 @@
 package com.airsoft.gamemapmaster.scenario.bomboperation.service;
 
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombOperationHistoryDto;
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombSiteHistoryDto;
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSite;
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSiteSessionState;
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSiteStatus;
@@ -149,5 +151,36 @@ public interface BombSiteSessionStateService {
     java.util.Map<BombSiteStatus, Long> getSiteStatistics(Long gameSessionId);
 
     BombSiteSessionState getBombSiteStatus(Long bombSiteStatusId);
+
+    // ===== MÉTHODES POUR L'HISTORIQUE ET LE REPLAY =====
+
+    /**
+     * Obtient l'historique complet d'une session pour le replay
+     * @param gameSessionId ID de la session de jeu
+     * @return Historique complet avec timeline et statistiques
+     */
+    BombOperationHistoryDto.BombOperationStatsDto getSessionHistory(Long gameSessionId);
+
+    /**
+     * Obtient l'historique de tous les sites d'une session
+     * @param gameSessionId ID de la session de jeu
+     * @return Liste des historiques de sites
+     */
+    List<BombSiteHistoryDto> getBombSitesHistory(Long gameSessionId);
+
+    /**
+     * Obtient la timeline des événements d'une session
+     * @param gameSessionId ID de la session de jeu
+     * @return Liste chronologique des événements
+     */
+    List<BombOperationHistoryDto.BombEventDto> getSessionTimeline(Long gameSessionId);
+
+    /**
+     * Obtient l'état des sites à un moment donné (pour le replay)
+     * @param gameSessionId ID de la session de jeu
+     * @param timestamp Moment dans le temps
+     * @return État des sites à ce moment
+     */
+    List<BombSiteHistoryDto> getSitesStateAtTime(Long gameSessionId, java.time.LocalDateTime timestamp);
 }
 

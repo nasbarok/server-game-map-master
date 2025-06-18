@@ -94,5 +94,7 @@ public interface BombSiteSessionStateRepository extends JpaRepository<BombSiteSe
      */
     @Query("SELECT COUNT(bsss) > 0 FROM BombSiteSessionState bsss WHERE bsss.gameSessionId = :gameSessionId AND bsss.status = 'ARMED'")
     boolean hasArmedSites(@Param("gameSessionId") Long gameSessionId);
+
+    List<BombSiteSessionState> findByGameSessionIdAndStatusIn(Long gameSessionId, List<BombSiteStatus> armed);
 }
 

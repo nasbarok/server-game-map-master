@@ -42,4 +42,6 @@ public interface PlayerPositionRepository extends JpaRepository<PlayerPosition, 
     Optional<PlayerPosition> findListPlayerPosition(@Param("userId") Long userId);
 
     Optional<PlayerPosition> findTopByUserIdOrderByTimestampDesc(Long id);
+
+    void deleteByGameSessionId(Long id);
 }

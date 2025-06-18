@@ -1,8 +1,15 @@
 package com.airsoft.gamemapmaster.scenario.bomboperation.service.impl;
 
-import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSite;
-import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSiteSessionState;
-import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSiteStatus;
+import com.airsoft.gamemapmaster.model.GameSession;
+import com.airsoft.gamemapmaster.model.GameSessionParticipant;
+import com.airsoft.gamemapmaster.repository.GameSessionRepository;
+import com.airsoft.gamemapmaster.repository.TeamRepository;
+import com.airsoft.gamemapmaster.repository.UserRepository;
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombOperationHistoryDto;
+import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombSiteHistoryDto;
+import com.airsoft.gamemapmaster.scenario.bomboperation.model.*;
+import com.airsoft.gamemapmaster.scenario.bomboperation.repository.BombOperationSessionRepository;
+import com.airsoft.gamemapmaster.scenario.bomboperation.repository.BombOperationTeamRoleRepository;
 import com.airsoft.gamemapmaster.scenario.bomboperation.repository.BombSiteSessionStateRepository;
 import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombSiteSessionStateService;
 import org.slf4j.Logger;
@@ -11,9 +18,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSiteStatus.*;
 
 /**
  * Implémentation du service pour la gestion des états des sites de bombe dans les sessions
@@ -26,7 +36,17 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
     
     @Autowired
     private BombSiteSessionStateRepository bombSiteSessionStateRepository;
-    
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private TeamRepository teamRepository;
+    @Autowired
+    private BombOperationTeamRoleRepository teamRoleRepository;
+    @Autowired
+    private GameSessionRepository gameSessionRepository;
+
+    @Autowired
+    private BombOperationSessionRepository bombOperationSessionRepository;
     @Override
     public List<BombSiteSessionState> createSessionStatesFromBombSites(Long gameSessionId, List<BombSite> bombSites) {
         logger.info("Création des états de session pour {} sites de bombe (session: {})", bombSites.size(), gameSessionId);
@@ -51,7 +71,7 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
         
         // Récupérer tous les sites inactifs de la session
         List<BombSiteSessionState> inactiveSites = bombSiteSessionStateRepository
-                .findByGameSessionIdAndStatus(gameSessionId, BombSiteStatus.INACTIVE);
+                .findByGameSessionIdAndStatus(gameSessionId, INACTIVE);
         
         if (inactiveSites.isEmpty()) {
             logger.warn("Aucun site inactif trouvé pour la session {}", gameSessionId);
@@ -86,23 +106,77 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
     public List<BombSiteSessionState> getAllSessionStates(Long gameSessionId) {
         return bombSiteSessionStateRepository.findByGameSessionId(gameSessionId);
     }
-    
+
     @Override
     @Transactional(readOnly = true)
     public List<BombSiteSessionState> getActiveSites(Long gameSessionId) {
-        return bombSiteSessionStateRepository.findActiveSitesByGameSessionId(gameSessionId);
+        List<BombSiteSessionState> bombSiteSessionStates = bombSiteSessionStateRepository
+                .findByGameSessionIdAndStatusIn(gameSessionId,
+                        List.of(ACTIVE));
+
+        return bombSiteSessionStates;
     }
     
     @Override
     @Transactional(readOnly = true)
     public List<BombSiteSessionState> getArmedSites(Long gameSessionId) {
-        return bombSiteSessionStateRepository.findArmedSitesByGameSessionId(gameSessionId);
+        List<BombSiteSessionState> armedOrDisarmed = bombSiteSessionStateRepository
+                .findByGameSessionIdAndStatusIn(gameSessionId,
+                        List.of(ARMED, BombSiteStatus.DISARMED));
+
+        List<BombSiteSessionState> result = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (BombSiteSessionState state : armedOrDisarmed) {
+            // si ARMED, vérifier qu'elle n'a pas dépassé son timer
+            if (state.getStatus() == ARMED) {
+                LocalDateTime armedAt = state.getArmedAt();
+                Integer timer = state.getBombTimer();
+
+                if (armedAt != null && timer != null) {
+                    LocalDateTime expectedExplosion = armedAt.plusSeconds(timer);
+                    if (now.isAfter(expectedExplosion)) {
+                        // Bombe expirée, ne pas la renvoyer
+                        continue;
+                    }
+                }
+            }
+            result.add(state);
+        }
+
+        return result;
     }
-    
+
     @Override
     @Transactional(readOnly = true)
     public List<BombSiteSessionState> getExplodedSites(Long gameSessionId) {
-        return bombSiteSessionStateRepository.findExplodedSitesByGameSessionId(gameSessionId);
+        List<BombSiteSessionState> allStates = bombSiteSessionStateRepository
+                .findByGameSessionIdAndStatusIn(gameSessionId,
+                        List.of(BombSiteStatus.EXPLODED, ARMED));
+
+        List<BombSiteSessionState> result = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (BombSiteSessionState state : allStates) {
+            if (state.getStatus() == BombSiteStatus.EXPLODED) {
+                result.add(state);
+                continue;
+            }
+
+            if (state.getStatus() == ARMED) {
+                LocalDateTime armedAt = state.getArmedAt();
+                Integer bombTimer = state.getBombTimer();
+
+                if (armedAt != null && bombTimer != null) {
+                    LocalDateTime explosionTime = armedAt.plusSeconds(bombTimer);
+                    if (now.isAfter(explosionTime)) {
+                        result.add(state);
+                    }
+                }
+            }
+        }
+
+        return result;
     }
     
     @Override
@@ -286,6 +360,231 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
         BombSiteSessionState status = optionalBombSiteSessionState.get();
         logger.info("✅ Statut de site de bombe récupéré: {}", status);
         return status;
+    }
+
+
+    @Override
+    public BombOperationHistoryDto.BombOperationStatsDto getSessionHistory(Long gameSessionId) {
+        List<BombSiteSessionState> allSites = getAllSessionStates(gameSessionId);
+
+        BombOperationHistoryDto.BombOperationStatsDto history = new BombOperationHistoryDto.BombOperationStatsDto();
+        history.setGameSessionId(gameSessionId);
+
+        Map<BombSiteStatus, Long> statusCounts = allSites.stream()
+                .collect(Collectors.groupingBy(BombSiteSessionState::getStatus, Collectors.counting()));
+
+        history.setTotalSites(allSites.size());
+        history.setActivatedSites(statusCounts.getOrDefault(ACTIVE, 0L).intValue());
+        history.setArmedSites(statusCounts.getOrDefault(ARMED, 0L).intValue());
+        history.setDisarmedSites(statusCounts.getOrDefault(BombSiteStatus.DISARMED, 0L).intValue());
+        history.setExplodedSites(statusCounts.getOrDefault(BombSiteStatus.EXPLODED, 0L).intValue());
+
+        // Déterminer le résultat
+        int exploded = history.getExplodedSites();
+        int disarmed = history.getDisarmedSites();
+
+        if (exploded > disarmed) {
+            history.setResult("TERRORISTS_WIN");
+            history.setWinningTeam("ATTACK");
+            history.setWinCondition("MORE_EXPLOSIONS");
+        } else if (disarmed > exploded) {
+            history.setResult("COUNTER_TERRORISTS_WIN");
+            history.setWinningTeam("DEFENSE");
+            history.setWinCondition("MORE_DISARMS");
+        } else {
+            history.setResult("DRAW");
+            history.setWinningTeam("NONE");
+            history.setWinCondition("EQUAL_OUTCOME");
+        }
+
+        // Créer la timeline des événements
+        List<BombOperationHistoryDto.BombEventDto> timeline = getSessionTimeline(gameSessionId);
+        history.setTimeline(timeline);
+
+        GameSession session = gameSessionRepository.findById(gameSessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        history.setSessionDurationMinutes(session.getDurationMinutes().longValue());
+
+        return history;
+    }
+
+    @Override
+    public List<BombSiteHistoryDto> getBombSitesHistory(Long gameSessionId) {
+        List<BombSiteSessionState> allSites = getAllSessionStates(gameSessionId);
+
+        return allSites.stream()
+                .map(this::convertToHistoryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<BombOperationHistoryDto.BombEventDto> getSessionTimeline(Long gameSessionId) {
+        List<BombSiteSessionState> allSites = getAllSessionStates(gameSessionId);
+        Map<Long, String> userNames = new HashMap<>();
+        Map<Long, String> userTeamRoles = new HashMap<>();
+
+        // 📌 Préparer les rôles
+        List<BombOperationTeamRole> roles = teamRoleRepository.findByGameSessionId(gameSessionId);
+        Map<Long, String> teamIdToRole = roles.stream()
+                .collect(Collectors.toMap(BombOperationTeamRole::getTeamId, BombOperationTeamRole::getRole));
+
+        List<GameSessionParticipant> participants = gameSessionRepository.findById(gameSessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found"))
+                .getParticipants();
+
+        Map<Long, Long> userToTeam = participants.stream()
+                .collect(Collectors.toMap(p -> p.getUser().getId(), p -> p.getTeam().getId()));
+
+        for (GameSessionParticipant p : participants) {
+            Long userId = p.getUser().getId();
+            userNames.put(userId, p.getUser().getUsername());
+            Long teamId = p.getTeam().getId();
+            String role = teamIdToRole.getOrDefault(teamId, "unknown");
+            userTeamRoles.put(userId, role);
+        }
+
+        // ✅ Charger le scénario associé à la session
+        BombOperationScenario bombOperationScenario = bombOperationSessionRepository
+                .findByGameSessionId(gameSessionId)
+                .map(BombOperationSession::getBombOperationScenario)
+                .orElseThrow(() -> new RuntimeException("BombOperationScenario not found"));
+
+        int bombTimer = bombOperationScenario.getBombTimer();
+        int defuseTime = bombOperationScenario.getDefuseTime();
+
+        List<BombOperationHistoryDto.BombEventDto> events = new ArrayList<>();
+
+        for (BombSiteSessionState site : allSites) {
+            // 🔁 SITE_ACTIVATED
+            if (site.getActivatedAt() != null) {
+                BombOperationHistoryDto.BombEventDto e = new BombOperationHistoryDto.BombEventDto();
+                e.setTimestamp(site.getActivatedAt());
+                e.setEventType("SITE_ACTIVATED");
+                e.setSiteName(site.getName());
+                e.setDescription("Site " + site.getName() + " activé");
+                e.setTimeRemainingSeconds(null);
+                events.add(e);
+            }
+
+            // 🔁 BOMB_ARMED
+            if (site.getArmedAt() != null) {
+                Long uid = site.getArmedByUserId();
+                BombOperationHistoryDto.BombEventDto e = new BombOperationHistoryDto.BombEventDto();
+                e.setTimestamp(site.getArmedAt());
+                e.setEventType("BOMB_ARMED");
+                e.setSiteName(site.getName());
+                e.setUserId(uid);
+                e.setPlayerName(userNames.getOrDefault(uid, "Inconnu"));
+                e.setTeamRole(userTeamRoles.getOrDefault(uid, "unknown"));
+                e.setDescription("Bombe armée sur le site " + site.getName());
+                e.setTimeRemainingSeconds(bombTimer); // 💣 Valeur directe depuis scénario
+                events.add(e);
+            }
+
+            // 🔁 BOMB_DISARMED
+            if (site.getDisarmedAt() != null) {
+                Long uid = site.getDisarmedByUserId();
+                BombOperationHistoryDto.BombEventDto e = new BombOperationHistoryDto.BombEventDto();
+                e.setTimestamp(site.getDisarmedAt());
+                e.setEventType("BOMB_DISARMED");
+                e.setSiteName(site.getName());
+                e.setUserId(uid);
+                e.setPlayerName(userNames.getOrDefault(uid, "Inconnu"));
+                e.setTeamRole(userTeamRoles.getOrDefault(uid, "unknown"));
+                e.setDescription("Bombe désarmée sur le site " + site.getName());
+
+                if (site.getExpectedExplosionAt() != null) {
+                    long remaining = Duration.between(site.getDisarmedAt(), site.getExpectedExplosionAt()).getSeconds();
+                    e.setTimeRemainingSeconds((int) Math.max(0, remaining)); // ⏱️ temps réel
+                } else {
+                    e.setTimeRemainingSeconds(defuseTime); // fallback si non calculable
+                }
+
+                events.add(e);
+            }
+
+            // 🔁 BOMB_EXPLODED
+            if (site.getExplodedAt() != null) {
+                BombOperationHistoryDto.BombEventDto e = new BombOperationHistoryDto.BombEventDto();
+                e.setTimestamp(site.getExplodedAt());
+                e.setEventType("BOMB_EXPLODED");
+                e.setSiteName(site.getName());
+                e.setDescription("Bombe explosée sur le site " + site.getName());
+                e.setTimeRemainingSeconds(0); // 💥
+                events.add(e);
+            }
+        }
+
+        events.sort(Comparator.comparing(BombOperationHistoryDto.BombEventDto::getTimestamp));
+        return events;
+    }
+
+    @Override
+    public List<BombSiteHistoryDto> getSitesStateAtTime(Long gameSessionId, LocalDateTime timestamp) {
+        List<BombSiteSessionState> allSites = getAllSessionStates(gameSessionId);
+
+        return allSites.stream()
+                .map(site -> convertToHistoryDtoAtTime(site, timestamp))
+                .collect(Collectors.toList());
+    }
+
+    // ===== MÉTHODES UTILITAIRES =====
+
+    private BombSiteStatus convertSessionStatusToSiteStatus(BombSiteSessionState sessionStatus) {
+        if (sessionStatus.equals(INACTIVE)) {
+            return ACTIVE; // Mapping par défaut
+        } else if (sessionStatus.equals(ACTIVE)) {
+            return ACTIVE;
+        } else if (sessionStatus.equals(ARMED)) {
+            return ARMED;
+        } else if (sessionStatus.equals(DISARMED)) {
+            return DISARMED;
+        } else if (sessionStatus.equals(EXPLODED)) {
+            return EXPLODED;
+        }
+        return ACTIVE;
+    }
+
+    private BombSiteHistoryDto convertToHistoryDto(BombSiteSessionState site) {
+        BombSiteHistoryDto dto = new BombSiteHistoryDto();
+        dto.setId(site.getId());
+        dto.setOriginalBombSiteId(site.getOriginalBombSiteId());
+        dto.setName(site.getName());
+        dto.setLatitude(site.getLatitude());
+        dto.setLongitude(site.getLongitude());
+        dto.setRadius(site.getRadius());
+        dto.setStatus(site.getStatus().name());
+        dto.setCreatedAt(site.getCreatedAt());
+        dto.setActivatedAt(site.getActivatedAt());
+        dto.setArmedAt(site.getArmedAt());
+        dto.setArmedByUserId(site.getArmedByUserId());
+        dto.setDisarmedAt(site.getDisarmedAt());
+        dto.setDisarmedByUserId(site.getDisarmedByUserId());
+        dto.setExplodedAt(site.getExplodedAt());
+        return dto;
+    }
+
+    private BombSiteHistoryDto convertToHistoryDtoAtTime(BombSiteSessionState site, LocalDateTime timestamp) {
+        BombSiteHistoryDto dto = convertToHistoryDto(site);
+
+        // Déterminer l'état du site au moment donné
+        if (site.getCreatedAt() != null && timestamp.isBefore(site.getCreatedAt())) {
+            dto.setStatus("NOT_CREATED");
+        } else if (site.getActivatedAt() != null && timestamp.isBefore(site.getActivatedAt())) {
+            dto.setStatus("INACTIVE");
+        } else if (site.getArmedAt() != null && timestamp.isBefore(site.getArmedAt())) {
+            dto.setStatus("ACTIVE");
+        } else if (site.getDisarmedAt() != null && timestamp.isBefore(site.getDisarmedAt())) {
+            dto.setStatus("ARMED");
+        } else if (site.getExplodedAt() != null && timestamp.isBefore(site.getExplodedAt())) {
+            dto.setStatus("ARMED");
+        } else {
+            // Utiliser l'état actuel
+            dto.setStatus(site.getStatus().name());
+        }
+
+        return dto;
     }
 }
 

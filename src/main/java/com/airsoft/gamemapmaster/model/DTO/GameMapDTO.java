@@ -39,13 +39,6 @@ public class GameMapDTO {
         }
 
         logger.info("🗺️ [GameMapDTO] Mapping GameMap entity → DTO : ID={}, name={}", entity.getId(), entity.getName());
-        logger.info("🖼️ [GameMapDTO] backgroundImageBase64: {} caractères",
-                entity.getBackgroundImageBase64() != null ? entity.getBackgroundImageBase64().length() : 0);
-        logger.info("🛰️ [GameMapDTO] satelliteImageBase64: {} caractères",
-                entity.getSatelliteImageBase64() != null ? entity.getSatelliteImageBase64().length() : 0);
-        logger.info("📐 [GameMapDTO] backgroundBoundsJson present: {}", entity.getBackgroundBoundsJson() != null);
-        logger.info("📡 [GameMapDTO] satelliteBoundsJson present: {}", entity.getSatelliteBoundsJson() != null);
-        logger.info("📏 [GameMapDTO] fieldBoundaryJson present: {}", entity.getFieldBoundaryJson() != null);
         logger.info("🧭 [GameMapDTO] mapZonesJson present: {}", entity.getMapZonesJson() != null);
         logger.info("📍 [GameMapDTO] mapPointsOfInterestJson present: {}", entity.getMapPointsOfInterestJson() != null);
 
