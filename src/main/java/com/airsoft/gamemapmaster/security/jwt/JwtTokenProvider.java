@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
@@ -24,6 +25,11 @@ public class JwtTokenProvider {
 
     @Value("${jwt.expiration}")
     private int jwtExpirationMs;
+
+    @PostConstruct
+    public void logSecret() {
+        logger.debug("🔐 jwt.secret = " + jwtSecret);
+    }
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
