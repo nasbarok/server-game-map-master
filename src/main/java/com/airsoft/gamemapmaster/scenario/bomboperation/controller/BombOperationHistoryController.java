@@ -33,13 +33,14 @@ public class BombOperationHistoryController {
      * GET /api/bomb-operation/history/{gameSessionId}
      */
     @GetMapping("/{gameSessionId}")
-    public ResponseEntity<BombOperationHistoryDto.BombOperationStatsDto> getSessionHistory(@PathVariable Long gameSessionId) {
+    public ResponseEntity<BombOperationHistoryDto> getSessionHistory(@PathVariable Long gameSessionId) {
         try {
-            BombOperationHistoryDto.BombOperationStatsDto history = bombSiteSessionStateService.getSessionHistory(gameSessionId);
+            BombOperationHistoryDto history = bombSiteSessionStateService.getSessionHistory(gameSessionId);
 
             ObjectMapper mapper = new ObjectMapper()
                     .registerModule(new JavaTimeModule())
                     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
 
             String json = mapper.writeValueAsString(history);
             logger.info("💣 [getSessionHistory] JSON renvoyé pour gameSessionId={}: {}", gameSessionId, json);

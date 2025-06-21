@@ -364,49 +364,65 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
 
 
     @Override
-    public BombOperationHistoryDto.BombOperationStatsDto getSessionHistory(Long gameSessionId) {
+    public BombOperationHistoryDto getSessionHistory(Long gameSessionId) {
+
+        GameSession gameSession = gameSessionRepository.findById(gameSessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        BombOperationSession bombOperationSession = bombOperationSessionRepository.findByGameSessionId(gameSessionId)
+                .orElseThrow(() -> new RuntimeException("BombOperationSession not found"));
+
+        BombOperationScenario bombOperationScenario = bombOperationSession.getBombOperationScenario();
         List<BombSiteSessionState> allSites = getAllSessionStates(gameSessionId);
-
-        BombOperationHistoryDto.BombOperationStatsDto history = new BombOperationHistoryDto.BombOperationStatsDto();
-        history.setGameSessionId(gameSessionId);
-
         Map<BombSiteStatus, Long> statusCounts = allSites.stream()
                 .collect(Collectors.groupingBy(BombSiteSessionState::getStatus, Collectors.counting()));
 
-        history.setTotalSites(allSites.size());
-        history.setActivatedSites(statusCounts.getOrDefault(ACTIVE, 0L).intValue());
-        history.setArmedSites(statusCounts.getOrDefault(ARMED, 0L).intValue());
-        history.setDisarmedSites(statusCounts.getOrDefault(BombSiteStatus.DISARMED, 0L).intValue());
-        history.setExplodedSites(statusCounts.getOrDefault(BombSiteStatus.EXPLODED, 0L).intValue());
 
-        // Déterminer le résultat
-        int exploded = history.getExplodedSites();
-        int disarmed = history.getDisarmedSites();
+        BombOperationHistoryDto.BombOperationStatsDto stats = new BombOperationHistoryDto.BombOperationStatsDto();
+        stats.setGameSessionId(gameSessionId);
+        stats.setTotalSites(allSites.size());
+        stats.setActivatedSites(statusCounts.getOrDefault(ACTIVE, 0L).intValue());
+        stats.setArmedSites(statusCounts.getOrDefault(ARMED, 0L).intValue());
+        stats.setDisarmedSites(statusCounts.getOrDefault(BombSiteStatus.DISARMED, 0L).intValue());
+        stats.setExplodedSites(statusCounts.getOrDefault(BombSiteStatus.EXPLODED, 0L).intValue());
+
+        int exploded = stats.getExplodedSites();
+        int disarmed = stats.getDisarmedSites();
 
         if (exploded > disarmed) {
-            history.setResult("TERRORISTS_WIN");
-            history.setWinningTeam("ATTACK");
-            history.setWinCondition("MORE_EXPLOSIONS");
+            stats.setResult("TERRORISTS_WIN");
+            stats.setWinningTeam("ATTACK");
+            stats.setWinCondition("MORE_EXPLOSIONS");
         } else if (disarmed > exploded) {
-            history.setResult("COUNTER_TERRORISTS_WIN");
-            history.setWinningTeam("DEFENSE");
-            history.setWinCondition("MORE_DISARMS");
+            stats.setResult("COUNTER_TERRORISTS_WIN");
+            stats.setWinningTeam("DEFENSE");
+            stats.setWinCondition("MORE_DISARMS");
         } else {
-            history.setResult("DRAW");
-            history.setWinningTeam("NONE");
-            history.setWinCondition("EQUAL_OUTCOME");
+            stats.setResult("DRAW");
+            stats.setWinningTeam("NONE");
+            stats.setWinCondition("EQUAL_OUTCOME");
         }
 
-        // Créer la timeline des événements
-        List<BombOperationHistoryDto.BombEventDto> timeline = getSessionTimeline(gameSessionId);
-        history.setTimeline(timeline);
+        stats.setSessionDurationMinutes(gameSession.getDurationMinutes().longValue());
+        stats.setTimeline(getSessionTimeline(gameSessionId));
 
-        GameSession session = gameSessionRepository.findById(gameSessionId)
-                .orElseThrow(() -> new RuntimeException("Session not found"));
+        // 🧩 Créer et remplir l’objet principal complet
+        BombOperationHistoryDto dto = new BombOperationHistoryDto();
+        dto.setGameSessionId(gameSessionId);
+        dto.setSessionStartTime(gameSession.getStartTime());
+        dto.setSessionEndTime(gameSession.getEndTime());
 
-        history.setSessionDurationMinutes(session.getDurationMinutes().longValue());
+        dto.setScenarioName(bombOperationScenario.getScenario().getName());
+        dto.setBombTimer(bombOperationScenario.getBombTimer());
+        dto.setDefuseTime(bombOperationScenario.getDefuseTime());
+        dto.setArmingTime(bombOperationScenario.getArmingTime());
+        dto.setActiveSites(bombOperationScenario.getActiveSites());
 
-        return history;
+        dto.setBombSitesHistory(getBombSitesHistory(gameSessionId));
+        dto.setTimeline(stats.getTimeline());
+        dto.setFinalStats(stats);
+
+        return dto;
     }
 
     @Override

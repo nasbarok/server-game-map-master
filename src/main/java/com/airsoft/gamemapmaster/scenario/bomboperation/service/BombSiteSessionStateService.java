@@ -159,7 +159,7 @@ public interface BombSiteSessionStateService {
      * @param gameSessionId ID de la session de jeu
      * @return Historique complet avec timeline et statistiques
      */
-    BombOperationHistoryDto.BombOperationStatsDto getSessionHistory(Long gameSessionId);
+    BombOperationHistoryDto getSessionHistory(Long gameSessionId);
 
     /**
      * Obtient l'historique de tous les sites d'une session
