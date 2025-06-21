@@ -1,6 +1,8 @@
 package com.airsoft.gamemapmaster.security.config;
 
 import com.airsoft.gamemapmaster.security.jwt.JwtAuthenticationFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +22,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+
+    final static Logger logger = LoggerFactory.getLogger(WebSecurityConfig.class);
 
     @Autowired
     private UserDetailsService userDetailsService;
@@ -47,6 +51,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+        logger.debug("✅ Configuration de la sécurité HTTP chargée.");
         http
             .cors().and().csrf().disable()
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
