@@ -137,4 +137,24 @@ databaseChangeLog:
         - dropColumn:
             tableName: bomb_operation_scenarios
             columnName: arming_time
+  - changeSet:
+      id: 99-add-scenario-id-to-bomb-sites
+      author: nasbarok
+      preConditions:
+        onFail: MARK_RAN
+        onError: MARK_RAN
+        not:
+          columnExists:
+            tableName: bomb_sites
+            columnName: scenario_id
+      changes:
+        - addColumn:
+            tableName: bomb_sites
+            columns:
+              - column:
+                  name: scenario_id
+                  type: bigint
+                  constraints:
+                    nullable: true
+
 
