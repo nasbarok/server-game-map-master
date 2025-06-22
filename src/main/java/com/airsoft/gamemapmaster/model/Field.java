@@ -32,9 +32,11 @@ public class Field {
     @ManyToOne
     @JoinColumn(name = "owner_id")
     private User owner;
-    
+
+    @Column(name = "size_x")
     private Double sizeX; // Taille en mètres (axe X)
-    
+
+    @Column(name = "size_y")
     private Double sizeY; // Taille en mètres (axe Y)
     
     private String imageUrl; // URL de l'image du terrain
