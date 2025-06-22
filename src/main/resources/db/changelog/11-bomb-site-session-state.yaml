@@ -156,5 +156,30 @@ databaseChangeLog:
                   type: bigint
                   constraints:
                     nullable: true
+  - changeSet:
+      id: 100-drop-sizex-sizey
+      author: nasbarok
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: fields
+            columnName: sizex
+      changes:
+        - dropColumn:
+            tableName: fields
+            columnName: sizex
+
+  - changeSet:
+      id: 101-drop-sizey
+      author: nasbarok
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: fields
+            columnName: sizey
+      changes:
+        - dropColumn:
+            tableName: fields
+            columnName: sizey
 
 
