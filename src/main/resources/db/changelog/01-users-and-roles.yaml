@@ -61,3 +61,20 @@ databaseChangeLog:
             tableName: team_members
             columnNames: team_id, user_id
             constraintName: pk_team_members
+  - changeSet:
+      id: users-01-fix-active-column
+      author: nasbarok
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: users
+            columnName: active
+      changes:
+        - modifyDataType:
+            tableName: users
+            columnName: active
+            newDataType: BOOLEAN
+        - addDefaultValue:
+            tableName: users
+            columnName: active
+            defaultValueBoolean: true
