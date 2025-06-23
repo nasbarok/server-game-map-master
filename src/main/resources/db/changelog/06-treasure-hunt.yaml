@@ -188,3 +188,17 @@ databaseChangeLog:
         - dropColumn:
             columnName: qrCode
             tableName: treasures
+  - changeSet:
+      id: treasure-hunt-05-rename-qrcode
+      author: nasbarok
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: treasures
+            columnName: qrCode
+      changes:
+        - renameColumn:
+            tableName: treasures
+            oldColumnName: qrCode
+            newColumnName: qr_code
+            columnDataType: VARCHAR(255)
