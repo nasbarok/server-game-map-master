@@ -202,3 +202,22 @@ databaseChangeLog:
             oldColumnName: qrCode
             newColumnName: qr_code
             columnDataType: VARCHAR(255)
+  - changeSet:
+      id: treasure-hunt-05-add-qrcode-column
+      author: nasbarok
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            columnExists:
+              tableName: treasures
+              columnName: qr_code
+      changes:
+        - addColumn:
+            tableName: treasures
+            columns:
+              - column:
+                  name: qr_code
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
