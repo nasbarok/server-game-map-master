@@ -60,6 +60,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/ws/**").permitAll()
                 .antMatchers("/h2-console/**").permitAll()
                 .antMatchers("/v2/api-docs", "/configuration/**", "/swagger*/**", "/webjars/**").permitAll()
+                .antMatchers("/api/actuator/health").permitAll()
                 .anyRequest().authenticated();
         
         // Pour H2 Console
