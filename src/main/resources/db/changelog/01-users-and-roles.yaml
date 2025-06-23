@@ -78,3 +78,23 @@ databaseChangeLog:
             tableName: users
             columnName: active
             defaultValueBoolean: true
+  - changeSet:
+      id: users-01b-fix-active-column-tinyint
+      author: nasbarok
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: users
+            columnName: active
+      changes:
+        - modifyDataType:
+            tableName: users
+            columnName: active
+            newDataType: TINYINT(1)
+        - dropDefaultValue:
+            tableName: users
+            columnName: active
+        - addDefaultValue:
+            tableName: users
+            columnName: active
+            defaultValueNumeric: 1
