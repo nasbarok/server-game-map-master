@@ -62,7 +62,7 @@ databaseChangeLog:
             columnNames: team_id, user_id
             constraintName: pk_team_members
   - changeSet:
-      id: users-01-fix-active-column
+      id: users-01c-fix-active-column-tinyint
       author: nasbarok
       preConditions:
         - onFail: MARK_RAN
@@ -70,31 +70,9 @@ databaseChangeLog:
             tableName: users
             columnName: active
       changes:
-        - modifyDataType:
-            tableName: users
-            columnName: active
-            newDataType: BOOLEAN
-        - addDefaultValue:
-            tableName: users
-            columnName: active
-            defaultValueBoolean: true
-  - changeSet:
-      id: users-01b-fix-active-column-tinyint
-      author: nasbarok
-      preConditions:
-        - onFail: MARK_RAN
-        - columnExists:
-            tableName: users
-            columnName: active
-      changes:
-        - modifyDataType:
-            tableName: users
-            columnName: active
-            newDataType: TINYINT(1)
-        - dropDefaultValue:
-            tableName: users
-            columnName: active
-        - addDefaultValue:
-            tableName: users
-            columnName: active
-            defaultValueNumeric: 1
+        - sql:
+            dbms: mysql
+            splitStatements: false
+            stripComments: true
+            sql: |
+              ALTER TABLE users MODIFY COLUMN active TINYINT(1) NOT NULL DEFAULT 1;
