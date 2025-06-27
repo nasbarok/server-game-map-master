@@ -4,6 +4,8 @@ import com.airsoft.gamemapmaster.model.DTO.GameSessionDTO;
 import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.GameSession;
 import com.airsoft.gamemapmaster.model.User;
+import com.airsoft.gamemapmaster.repository.GameSessionRepository;
+import com.airsoft.gamemapmaster.service.GameSessionService;
 import com.airsoft.gamemapmaster.service.HistoryService;
 import com.airsoft.gamemapmaster.service.UserService;
 import com.airsoft.gamemapmaster.service.impl.GameSessionServiceImpl;
@@ -33,6 +35,9 @@ public class HistoryController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private GameSessionRepository gameSessionRepository;
 
     /**
      * Récupère tous les terrains pour l'utilisateur authentifié
@@ -211,6 +216,12 @@ public class HistoryController {
      */
     @DeleteMapping("/fields/{id}")
     public ResponseEntity<?> deleteField(@PathVariable Long id, Authentication authentication) {
+
+        List<GameSession> sessions = gameSessionRepository.findByFieldId(id);
+        for (GameSession session : sessions) {
+            historyService.deleteGameSession(session.getId());
+        }
+
         log.info("Suppression du terrain avec ID : {}", id);
         String username = authentication.getName();
         Optional<User> userOpt = userService.findByUsername(username);

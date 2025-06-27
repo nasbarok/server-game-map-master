@@ -16,6 +16,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 @RestController
@@ -24,10 +27,10 @@ public class GameSessionController {
     private static final Logger logger = LoggerFactory.getLogger(GameSessionController.class);
     @Autowired
     private GameMapService gameMapService;
-    
+
     @Autowired
     private ScenarioService scenarioService;
-    
+
     @Autowired
     private UserService userService;
 
@@ -59,10 +62,24 @@ public class GameSessionController {
 
 
     @PostMapping("/{id}/start")
-    public ResponseEntity<GameSessionDTO> startGameSession(@PathVariable Long id) {
+    public ResponseEntity<GameSessionDTO> startGameSession(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload) {
         logger.info("▶️ Requête POST /api/game-sessions/{}/start reçue", id);
 
-        GameSession startedSession = gameSessionService.startGameSession(id);
+        String startTimeStr = payload.get("startTime");
+        LocalDateTime startTime;
+        try {
+            Instant instant = Instant.parse(startTimeStr);
+            startTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
+        } catch (Exception e) {
+            logger.error("Failed to parse startTime", e);
+            logger.error("Payload: {}", payload);
+            logger.error("startTimeStr: {}", startTimeStr);
+            return ResponseEntity.badRequest().body(null); // ou un DTO d'erreur
+        }
+
+        GameSession startedSession = gameSessionService.startGameSession(id, startTime);
         logger.info("🎮 Session démarrée : ID={}, start={}, nbParticipants={}, nbScénarios={}",
                 startedSession.getId(),
                 startedSession.getStartTime(),
@@ -88,6 +105,45 @@ public class GameSessionController {
         );
 
         return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * Termine une partie sur une carte
+     */
+    @PostMapping("/{id}/end")
+    public ResponseEntity<GameSessionDTO> endGameSession(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload) {
+
+        logger.info("▶️ Requête POST /api/game-sessions/{}/end reçue", id);
+
+        String endTimeStr = payload.get("endTime");
+        LocalDateTime endTime;
+        try {
+            Instant instant = Instant.parse(endTimeStr);
+            endTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
+        } catch (Exception e) {
+            logger.error("Failed to parse endTime", e);
+            logger.error("Payload: {}", payload);
+            logger.error("endTimeStr: {}", endTimeStr);
+            return ResponseEntity.badRequest().body(null); // ou un DTO d'erreur
+        }
+
+        GameSession endedSession = gameSessionService.endGameSession(id, endTime);
+
+
+        // Notifier tous les participants via WebSocket
+        WebSocketMessage message = WebSocketMessage.gameSessionEnded(
+                endedSession,
+                endedSession.getField().getOwner().getId()
+        );
+
+        messagingTemplate.convertAndSend("/topic/field/" + endedSession.getField().getId(), message);
+
+        logger.info("📡 Message WebSocket GAME_SESSION_ENDED envoyé sur /topic/field/{}", endedSession.getField().getId());
+
+        GameSessionDTO gameSessionDTO = GameSessionDTO.fromEntity(endedSession);
+        return ResponseEntity.ok(gameSessionDTO);
     }
 
 
@@ -124,27 +180,6 @@ public class GameSessionController {
                 "gameSessionId", session.getId(),
                 "fieldId", field.getId()
         ));
-    }
-
-    /**
-     * Termine une partie sur une carte
-     */
-    @PostMapping("/{id}/end")
-    public ResponseEntity<GameSessionDTO> endGameSession(@PathVariable Long id) {
-        GameSession endedSession = gameSessionService.endGameSession(id);
-
-        // Notifier tous les participants via WebSocket
-        WebSocketMessage message = WebSocketMessage.gameSessionEnded(
-                endedSession,
-                endedSession.getField().getOwner().getId()
-        );
-
-        messagingTemplate.convertAndSend("/topic/field/" + endedSession.getField().getId(), message);
-
-        logger.info("📡 Message WebSocket GAME_SESSION_ENDED envoyé sur /topic/field/{}", endedSession.getField().getId());
-
-        GameSessionDTO gameSessionDTO = GameSessionDTO.fromEntity(endedSession);
-        return ResponseEntity.ok(gameSessionDTO);
     }
 
     @GetMapping("/{id}")
@@ -334,7 +369,7 @@ public class GameSessionController {
         }
         // Convertir les scénarios en DTOs
         List<GameSessionScenarioDTO> scenarioDtos = new ArrayList<>();
-        for(GameSessionScenario scenario : gameSessionScenario){
+        for (GameSessionScenario scenario : gameSessionScenario) {
             GameSessionScenarioDTO scenarioDTO = GameSessionScenarioDTO.fromEntity(scenario);
             scenarioDtos.add(scenarioDTO);
         }
@@ -349,7 +384,7 @@ public class GameSessionController {
         }
         // Convertir les scénarios en DTOs
         List<GameSessionScenarioDTO> scenarioDtos = new ArrayList<>();
-        for(GameSessionScenario scenario : gameSessionScenario){
+        for (GameSessionScenario scenario : gameSessionScenario) {
             GameSessionScenarioDTO scenarioDTO = GameSessionScenarioDTO.fromEntity(scenario);
             scenarioDtos.add(scenarioDTO);
         }
@@ -439,7 +474,6 @@ public class GameSessionController {
     }
 
 
-
     @GetMapping("/current-session/{fieldId}")
     public ResponseEntity<GameSessionDTO> getGameSessionByFieldId(@PathVariable Long fieldId) {
         Optional<GameSession> sessionOpt = gameSessionService.findActiveSessionByFieldId(fieldId);
@@ -456,6 +490,7 @@ public class GameSessionController {
 
         return ResponseEntity.ok(gameSessionDTO);
     }
+
     @GetMapping("/session/{sessionId}")
     public ResponseEntity<?> getGameSessionById(@PathVariable Long sessionId) {
         Optional<GameSession> sessionOpt = gameSessionService.findById(sessionId);

@@ -73,12 +73,12 @@ public class GameSessionServiceImpl implements GameSessionService {
 
     @Override
     @Transactional
-    public GameSession startGameSession(Long gameSessionId) {
+    public GameSession startGameSession(Long gameSessionId, LocalDateTime startTime) {
         GameSession gameSession = gameSessionRepository.findById(gameSessionId)
                 .orElseThrow(() -> new RuntimeException("Game session not found with id: " + gameSessionId));
 
         // ⏱️ Mise à jour des métadonnées de session
-        gameSession.setStartTime(LocalDateTime.now());
+        gameSession.setStartTime(startTime);
         gameSession.setActive(true);
         GameSession savedSession = gameSessionRepository.save(gameSession);
 
@@ -168,10 +168,10 @@ public class GameSessionServiceImpl implements GameSessionService {
 
     @Override
     @Transactional
-    public GameSession endGameSession(Long gameSessionId) {
+    public GameSession endGameSession(Long gameSessionId,LocalDateTime endTime) {
         return gameSessionRepository.findById(gameSessionId)
                 .map(gameSession -> {
-                    gameSession.setEndTime(LocalDateTime.now());
+                    gameSession.setEndTime(endTime);
                     gameSession.setActive(false);
                     return gameSessionRepository.save(gameSession);
                 })

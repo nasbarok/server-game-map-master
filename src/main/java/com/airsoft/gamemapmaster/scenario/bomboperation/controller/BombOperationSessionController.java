@@ -74,50 +74,6 @@ public class BombOperationSessionController {
         return new ResponseEntity<>(bombOperationSessionDto, HttpStatus.OK);
     }
 
-    @PostMapping("/{sessionId}/plant-bomb")
-    public ResponseEntity<BombOperationSessionDto> plantBomb(
-            @PathVariable Long sessionId,
-            @RequestParam Long userId,
-            @RequestParam Long siteId,
-            @RequestParam Double latitude,
-            @RequestParam Double longitude) {
-
-        logger.info("Tentative de pose de bombe par l'utilisateur ID: {} sur le site ID: {} pour la session ID: {}",
-                userId, siteId, sessionId);
-
-        BombOperationSession session = bombOperationSessionService.plantBomb(sessionId, userId, siteId, latitude, longitude);
-
-        return new ResponseEntity<>(session.toDto(null), HttpStatus.OK);
-    }
-
-    @PostMapping("/{sessionId}/start-defusing")
-    public ResponseEntity<BombOperationSessionDto> startDefusing(
-            @PathVariable Long sessionId,
-            @RequestParam Long userId,
-            @RequestParam Double latitude,
-            @RequestParam Double longitude) {
-
-        logger.info("Tentative de désamorçage de bombe par l'utilisateur ID: {} pour la session ID: {}",
-                userId, sessionId);
-
-        BombOperationSession session = bombOperationSessionService.startDefusing(sessionId, userId, latitude, longitude);
-
-        return new ResponseEntity<>(session.toDto(null), HttpStatus.OK);
-    }
-
-    @PostMapping("/{sessionId}/finish-defusing")
-    public ResponseEntity<BombOperationSessionDto> finishDefusing(
-            @PathVariable Long sessionId,
-            @RequestParam Long userId) {
-
-        logger.info("Fin du désamorçage de bombe par l'utilisateur ID: {} pour la session ID: {}",
-                userId, sessionId);
-
-        BombOperationSession session = bombOperationSessionService.finishDefusing(sessionId, userId);
-
-        return new ResponseEntity<>(session.toDto(null), HttpStatus.OK);
-    }
-
     @PostMapping("/{sessionId}/explode-bomb")
     public ResponseEntity<BombOperationSessionDto> explodeBomb(@PathVariable Long sessionId) {
         logger.info("Explosion de la bombe pour la session ID: {}", sessionId);
@@ -235,6 +191,7 @@ public class BombOperationSessionController {
                 gameSessionId,
                 request.getBombSiteId(),
                 request.getUserId(),
+                request.getActionTime(),
                 bombTimer
         );
         logger.info("Site armé: {}", siteArmedState.getName());
@@ -273,7 +230,8 @@ public class BombOperationSessionController {
         BombSiteSessionState siteDisarmedState = bombSiteSessionStateService.disarmBomb(
                 gameSessionId,
                 request.getBombSiteId(),
-                request.getUserId()
+                request.getUserId(),
+                request.getActionTime()
         );
         logger.info("Site désarmé: {}", siteDisarmedState.getName());
         // 4. Notification WebSocket

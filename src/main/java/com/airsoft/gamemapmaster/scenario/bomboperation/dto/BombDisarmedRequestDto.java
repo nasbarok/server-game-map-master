@@ -2,6 +2,8 @@ package com.airsoft.gamemapmaster.scenario.bomboperation.dto;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 /**
  * DTO pour les requêtes de désarmement de bombe.
  * Version simplifiée : contient seulement les informations finales.
@@ -11,21 +13,7 @@ public class BombDisarmedRequestDto {
     
     private Long userId;
     private Long bombSiteId;
+    private LocalDateTime actionTime;
 
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public Long getBombSiteId() {
-        return bombSiteId;
-    }
-
-    public void setBombSiteId(Long bombSiteId) {
-        this.bombSiteId = bombSiteId;
-    }
 }
 

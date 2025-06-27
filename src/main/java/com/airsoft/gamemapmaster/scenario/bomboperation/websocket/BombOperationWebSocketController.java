@@ -4,6 +4,8 @@ import com.airsoft.gamemapmaster.scenario.bomboperation.dto.BombOperationActionD
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombOperationNotification;
 import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombOperationPlayerStateService;
 import com.airsoft.gamemapmaster.scenario.bomboperation.service.BombOperationSessionService;
+import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,240 +89,28 @@ public class BombOperationWebSocketController {
         return notification;
     }
 
-    /**
-     * Endpoint pour recevoir les demandes de pose de bombe
-     * @param sessionId ID de la session
-     * @param message Message contenant les informations de pose de bombe
-     * @return Notification de pose de bombe
-     */
-    @MessageMapping("/bomb-operation/{sessionId}/plant-bomb")
-    @SendTo("/topic/bomb-operation/{sessionId}")
-    public BombOperationNotification handlePlantBomb(
-            @DestinationVariable Long sessionId,
-            PlantBombMessage message) {
-
-        logger.info("Réception d'une demande de pose de bombe pour l'utilisateur ID: {} sur le site ID: {} dans la session ID: {}",
-                message.getUserId(), message.getSiteId(), sessionId);
-
-        try {
-            // Tenter de poser la bombe
-            bombOperationService.plantBomb(sessionId, message.getUserId(), message.getSiteId(),
-                    message.getLatitude(), message.getLongitude());
-
-            // La notification sera envoyée par le service de session via le WebSocketService
-            // Retourner null pour ne pas envoyer de notification supplémentaire
-            return null;
-        } catch (Exception e) {
-            logger.error("Erreur lors de la pose de bombe: {}", e.getMessage());
-
-            // Créer une notification d'erreur
-            BombOperationNotification notification = new BombOperationNotification();
-            notification.setType("ERROR");
-            notification.setSessionId(sessionId);
-            notification.setUserId(message.getUserId());
-            notification.setMessage("Erreur lors de la pose de bombe: " + e.getMessage());
-
-            return notification;
-        }
-    }
-
-    /**
-     * Endpoint pour recevoir les demandes de désamorçage de bombe
-     * @param sessionId ID de la session
-     * @param message Message contenant les informations de désamorçage
-     * @return Notification de début de désamorçage
-     */
-    @MessageMapping("/bomb-operation/{sessionId}/start-defusing")
-    @SendTo("/topic/bomb-operation/{sessionId}")
-    public BombOperationNotification handleStartDefusing(
-            @DestinationVariable Long sessionId,
-            DefuseMessage message) {
-
-        logger.info("Réception d'une demande de désamorçage pour l'utilisateur ID: {} dans la session ID: {}",
-                message.getUserId(), sessionId);
-
-        try {
-            // Tenter de commencer le désamorçage
-            bombOperationService.startDefusing(sessionId, message.getUserId(),
-                    message.getLatitude(), message.getLongitude());
-
-            // La notification sera envoyée par le service de session via le WebSocketService
-            // Retourner null pour ne pas envoyer de notification supplémentaire
-            return null;
-        } catch (Exception e) {
-            logger.error("Erreur lors du début de désamorçage: {}", e.getMessage());
-
-            // Créer une notification d'erreur
-            BombOperationNotification notification = new BombOperationNotification();
-            notification.setType("ERROR");
-            notification.setSessionId(sessionId);
-            notification.setUserId(message.getUserId());
-            notification.setMessage("Erreur lors du début de désamorçage: " + e.getMessage());
-
-            return notification;
-        }
-    }
-
-    /**
-     * Endpoint pour recevoir les demandes de fin de désamorçage
-     * @param sessionId ID de la session
-     * @param message Message contenant les informations de fin de désamorçage
-     * @return Notification de fin de désamorçage
-     */
-    @MessageMapping("/bomb-operation/{sessionId}/finish-defusing")
-    @SendTo("/topic/bomb-operation/{sessionId}")
-    public BombOperationNotification handleFinishDefusing(
-            @DestinationVariable Long sessionId,
-            DefuseMessage message) {
-
-        logger.info("Réception d'une demande de fin de désamorçage pour l'utilisateur ID: {} dans la session ID: {}",
-                message.getUserId(), sessionId);
-
-        try {
-            // Tenter de terminer le désamorçage
-            bombOperationService.finishDefusing(sessionId, message.getUserId());
-
-            // La notification sera envoyée par le service de session via le WebSocketService
-            // Retourner null pour ne pas envoyer de notification supplémentaire
-            return null;
-        } catch (Exception e) {
-            logger.error("Erreur lors de la fin de désamorçage: {}", e.getMessage());
-
-            // Créer une notification d'erreur
-            BombOperationNotification notification = new BombOperationNotification();
-            notification.setType("ERROR");
-            notification.setSessionId(sessionId);
-            notification.setUserId(message.getUserId());
-            notification.setMessage("Erreur lors de la fin de désamorçage: " + e.getMessage());
-
-            return notification;
-        }
-    }
-
-
-    /**
-     * Reçoit une action du scénario Opération Bombe et la traite.
-     *
-     * @param fieldId ID du terrain
-     * @param actionDTO DTO contenant les informations de l'action
-     */
-    @MessageMapping("/field/{fieldId}/bomb")
-    public void handleBombOperationAction(
-            @DestinationVariable Integer fieldId,
-            BombOperationActionDTO actionDTO) {
-
-        if (!"BOMB_OPERATION_ACTION".equals(actionDTO.getType())) {
-            return; // Ignore les autres types
-        }
-
-        Long gameSessionId = actionDTO.getGameSessionId();
-        Long senderId = actionDTO.getSenderId();
-        var payload = actionDTO.getPayload();
-
-        try {
-            switch (actionDTO.getAction()) {
-
-                case "PLANT_BOMB":
-                    bombOperationService.plantBomb(
-                            gameSessionId,
-                            senderId,
-                            ((Number) payload.get("bombSiteId")).longValue(),
-                            ((Number) payload.get("latitude")).doubleValue(),
-                            ((Number) payload.get("longitude")).doubleValue()
-                    );
-                    break;
-
-                case "START_DEFUSE_BOMB":
-                    bombOperationService.startDefusing(
-                            gameSessionId,
-                            senderId,
-                            ((Number) payload.get("latitude")).doubleValue(),
-                            ((Number) payload.get("longitude")).doubleValue()
-                    );
-                    break;
-
-                case "END_DEFUSE_BOMB":
-                    bombOperationService.finishDefusing(
-                            gameSessionId,
-                            senderId
-                    );
-                    break;
-
-                default:
-                    logger.warn("❌ Action non reconnue: {}", actionDTO.getAction());
-            }
-
-            // Envoyer la mise à jour d'état à tous les clients
-            messagingTemplate.convertAndSend(
-                    "/topic/field/" + fieldId,
-                    bombOperationService.getGameSessionState(gameSessionId)
-            );
-
-        } catch (Exception e) {
-            logger.error("❌ Erreur lors du traitement de l'action Bombe: {}", e.getMessage());
-/*            messagingTemplate.convertAndSend(
-                    "/topic/field/" + fieldId,
-                    BombOperationNotification.error(gameSessionId, senderId, e.getMessage())
-            );*/
-        }
-    }
-
 
     /**
      * Classe interne pour les messages de mise à jour de position
      */
+    @Setter
+    @Getter
     public static class PositionUpdateMessage {
         private Long userId;
         private Double latitude;
         private Double longitude;
 
-        public Long getUserId() {
-            return userId;
-        }
-
-        public void setUserId(Long userId) {
-            this.userId = userId;
-        }
-
-        public Double getLatitude() {
-            return latitude;
-        }
-
-        public void setLatitude(Double latitude) {
-            this.latitude = latitude;
-        }
-
-        public Double getLongitude() {
-            return longitude;
-        }
-
-        public void setLongitude(Double longitude) {
-            this.longitude = longitude;
-        }
     }
 
     /**
      * Classe interne pour les messages de joueur tué
      */
+    @Setter
+    @Getter
     public static class PlayerKilledMessage {
         private Long userId;
         private Long killerUserId;
 
-        public Long getUserId() {
-            return userId;
-        }
-
-        public void setUserId(Long userId) {
-            this.userId = userId;
-        }
-
-        public Long getKillerUserId() {
-            return killerUserId;
-        }
-
-        public void setKillerUserId(Long killerUserId) {
-            this.killerUserId = killerUserId;
-        }
     }
 
     /**

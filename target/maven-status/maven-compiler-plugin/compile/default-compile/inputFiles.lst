@@ -93,6 +93,7 @@ J:\Manus_IA\airsoft_app\spring-boot-server\src\main\java\com\airsoft\gamemapmast
 J:\Manus_IA\airsoft_app\spring-boot-server\src\main\java\com\airsoft\gamemapmaster\service\impl\GameMapServiceImpl.java
 J:\Manus_IA\airsoft_app\spring-boot-server\src\main\java\com\airsoft\gamemapmaster\service\impl\ScenarioServiceImpl.java
 J:\Manus_IA\airsoft_app\spring-boot-server\src\main\java\com\airsoft\gamemapmaster\scenario\bomboperation\service\impl\BombOperationPlayerStateServiceImpl.java
+J:\Manus_IA\airsoft_app\spring-boot-server\src\main\java\com\airsoft\gamemapmaster\controller\SystemController.java
 J:\Manus_IA\airsoft_app\spring-boot-server\src\main\java\com\airsoft\gamemapmaster\controller\FieldController.java
 J:\Manus_IA\airsoft_app\spring-boot-server\src\main\java\com\airsoft\gamemapmaster\scenario\bomboperation\model\BombOperationNotification.java
 J:\Manus_IA\airsoft_app\spring-boot-server\src\main\java\com\airsoft\gamemapmaster\scenario\treasurehunt\model\Treasure.java

@@ -157,23 +157,23 @@ public class BombSiteSessionState {
     /**
      * Arme la bombe sur ce site
      */
-    public void arm(Long userId, Integer bombTimerSeconds) {
+    public void arm(Long userId, Integer bombTimerSeconds,LocalDateTime armedAt) {
         this.status = BombSiteStatus.ARMED;
-        this.armedAt = LocalDateTime.now();
+        this.armedAt = armedAt;
         this.armedByUserId = userId;
         this.bombTimer = bombTimerSeconds;
         this.expectedExplosionAt = this.armedAt.plusSeconds(bombTimerSeconds);
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = armedAt;
     }
     
     /**
      * Désarme la bombe sur ce site
      */
-    public void disarm(Long userId) {
+    public void disarm(Long userId,LocalDateTime disarmedAt) {
         this.status = BombSiteStatus.DISARMED;
-        this.disarmedAt = LocalDateTime.now();
+        this.disarmedAt = disarmedAt;
         this.disarmedByUserId = userId;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = disarmedAt;
     }
     
     /**

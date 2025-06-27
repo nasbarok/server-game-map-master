@@ -141,6 +141,7 @@ com\airsoft\gamemapmaster\security\jwt\JwtTokenProvider.class
 com\airsoft\gamemapmaster\service\ScenarioService.class
 com\airsoft\gamemapmaster\scenario\bomboperation\model\BombOperationNotification$RoundEndData.class
 com\airsoft\gamemapmaster\config\WebConfig.class
+com\airsoft\gamemapmaster\controller\SystemController.class
 com\airsoft\gamemapmaster\service\FieldUserHistoryService.class
 com\airsoft\gamemapmaster\scenario\bomboperation\dto\BombSiteHistoryDto.class
 com\airsoft\gamemapmaster\controller\ScenarioModuleController.class

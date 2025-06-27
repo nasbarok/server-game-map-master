@@ -226,7 +226,7 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
     }
     
     @Override
-    public BombSiteSessionState armBomb(Long gameSessionId, Long bombSiteId, Long userId, Integer bombTimerSeconds) {
+    public BombSiteSessionState armBomb(Long gameSessionId, Long bombSiteId, Long userId,LocalDateTime actionTime, Integer bombTimerSeconds) {
         logger.info("Armement de la bombe sur le site {} par l'utilisateur {} (session: {})",
                 bombSiteId, userId, gameSessionId);
 
@@ -237,7 +237,7 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
             throw new IllegalStateException("Le site '" + site.getName() + "' n'est pas actif et ne peut pas être armé");
         }
         
-        site.arm(userId, bombTimerSeconds);
+        site.arm(userId, bombTimerSeconds,actionTime);
         BombSiteSessionState savedSite = bombSiteSessionStateRepository.save(site);
         
         logger.info("✅ Bombe armée sur le site '{}' avec un timer de {} secondes", site.getName(), bombTimerSeconds);
@@ -245,7 +245,7 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
     }
     
     @Override
-    public BombSiteSessionState disarmBomb(Long gameSessionId, Long bombSiteId, Long userId) {
+    public BombSiteSessionState disarmBomb(Long gameSessionId, Long bombSiteId, Long userId,LocalDateTime actionTime) {
         logger.info("Désarmement de la bombe sur le site {} par l'utilisateur {} (session: {})",
                 bombSiteId, userId, gameSessionId);
 
@@ -256,7 +256,7 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
             throw new IllegalStateException("Le site '" + site.getName() + "' n'est pas armé et ne peut pas être désarmé");
         }
         
-        site.disarm(userId);
+        site.disarm(userId,actionTime);
         BombSiteSessionState savedSite = bombSiteSessionStateRepository.save(site);
         
         logger.info("✅ Bombe désarmée sur le site '{}'", site.getName());

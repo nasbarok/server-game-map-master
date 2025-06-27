@@ -16,7 +16,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -156,7 +158,9 @@ public class FieldController {
     }
 
     @PostMapping("/{fieldId}/open")
-    public ResponseEntity<?> openField(@PathVariable Long fieldId, Principal principal) {
+    public ResponseEntity<?> openField(@PathVariable Long fieldId,
+                                       @RequestBody Map<String, String> payload,
+                                       Principal principal) {
         String username = principal.getName();
         Optional<User> userOpt = userService.findByUsername(username);
         if (userOpt.isEmpty()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -169,11 +173,19 @@ public class FieldController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Vous n'êtes pas propriétaire de ce terrain.");
         }
 
-        if (field.isActive()) {
-            return ResponseEntity.ok(field);
+        String openedAtStr = payload.get("openedAt");
+        LocalDateTime openedAt;
+        try {
+            Instant instant = Instant.parse(openedAtStr);
+            openedAt = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
+        } catch (Exception e) {
+            logger.error("Failed to parse openedAt", e);
+            logger.error("Payload: {}", payload);
+            logger.error("openedAtStr: {}", openedAtStr);
+            return ResponseEntity.badRequest().body("Format de date invalide pour 'openedAt'");
         }
 
-        field.setOpenedAt(LocalDateTime.now());
+        field.setOpenedAt(openedAt);
         field.setClosedAt(null);
         field.setActive(true);
 
@@ -198,7 +210,9 @@ public class FieldController {
     }
 
     @PostMapping("/{fieldId}/close")
-    public ResponseEntity<?> closeField(@PathVariable Long fieldId, Principal principal) {
+    public ResponseEntity<?> closeField(@PathVariable Long fieldId,
+                                        @RequestBody Map<String, String> payload,
+                                        Principal principal) {
         String username = principal.getName();
         Optional<User> userOpt = userService.findByUsername(username);
         if (userOpt.isEmpty()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -215,6 +229,18 @@ public class FieldController {
             return ResponseEntity.ok(field);
         }
 
+        String closedAtStr = payload.get("closedAt");
+        LocalDateTime closedAt;
+        try {
+            Instant instant = Instant.parse(closedAtStr);
+            closedAt = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
+        } catch (Exception e) {
+            logger.error("Failed to parse closedAt", e);
+            logger.error("Payload: {}", payload);
+            logger.error("closedAtStr: {}", closedAtStr);
+            return ResponseEntity.badRequest().body("Format de date invalide pour 'closedAt'");
+        }
+
         // Envoyer une notification WebSocket AVANT de déconnecter les joueurs
         WebSocketMessage closeMessage = new WebSocketMessage(
                 "FIELD_CLOSED",
@@ -222,7 +248,7 @@ public class FieldController {
                         "fieldId", fieldId,
                         "ownerId", userOpt.get().getId(),
                         "ownerUsername", username,
-                        "closedAt", LocalDateTime.now().toString()
+                        "closedAt", closedAt
                 ),
                 userOpt.get().getId(),
                 System.currentTimeMillis()
@@ -238,7 +264,7 @@ public class FieldController {
             gameMapService.save(map);
         }
 
-        field.setClosedAt(LocalDateTime.now());
+        field.setClosedAt(closedAt);
         field.setActive(false);
 
         Field updated = fieldService.save(field);
