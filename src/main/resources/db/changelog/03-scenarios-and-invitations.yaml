@@ -76,3 +76,11 @@ databaseChangeLog:
               - column:
                   name: responded_at
                   type: DATETIME
+  - changeSet:
+      id: 20250701-extend-scenario-description
+      author: nasbarok
+      changes:
+        - modifyDataType:
+            tableName: scenarios
+            columnName: description
+            newDataType: VARCHAR(2000)

@@ -167,19 +167,19 @@ public class TeamController {
 
         return ResponseEntity.ok().<Void>build();
     }
-    
+
     @GetMapping("/leader/{leaderId}")
     public ResponseEntity<List<Team>> getTeamsByLeaderId(@PathVariable Long leaderId) {
         return ResponseEntity.ok(teamService.findByLeaderId(leaderId));
     }
-    
+
     @PostMapping("/{teamId}/members/{userId}")
     public ResponseEntity<Team> addMemberToTeam(@PathVariable Long teamId, @PathVariable Long userId) {
         return teamService.addMember(teamId, userId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-    
+
     @DeleteMapping("/{teamId}/members/{userId}")
     public ResponseEntity<Team> removeMemberFromTeam(@PathVariable Long teamId, @PathVariable Long userId) {
         return teamService.removeMember(teamId, userId)
@@ -214,12 +214,14 @@ public class TeamController {
         if (optionalMap.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Carte non trouvée");
         }
+        Long currentUserId = currentUser.get().getId();
+        Long mapOwnerId = optionalMap.get().getOwner().getId();
 
-        // Vérifier si l'utilisateur est le propriétaire
-        if (!optionalMap.get().getOwner().getId().equals(currentUser.get().getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Vous n'êtes pas autorisé à gérer cette carte");
+        // Autoriser si le joueur est le propriétaire OU s'il retire lui-même
+        if (!mapOwnerId.equals(currentUserId) && !currentUserId.equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Vous n'êtes pas autorisé à retirer ce joueur de l'équipe");
         }
-
         // Récupérer le joueur connecté
         Optional<ConnectedPlayer> connectedPlayerOpt =
                 connectedPlayerService.getConnectedPlayerByUserAndMap(userId, mapId);
