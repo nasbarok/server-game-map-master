@@ -21,7 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -254,7 +255,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
 
         // Mettre à jour la session
         session.setGameState(BombOperationState.BOMB_EXPLODED);
-        session.setLastUpdated(LocalDateTime.now());
+        session.setLastUpdated(OffsetDateTime.now(ZoneOffset.UTC));
 
         session = bombOperationSessionRepository.save(session);
         logger.info("Bombe explosée pour la session ID: {}", sessionId);
@@ -454,7 +455,7 @@ public class BombOperationSessionServiceImpl implements BombOperationSessionServ
         if (session.getGameState() != BombOperationState.BOMB_PLANTED) return 0;
 
         int totalSeconds = session.getBombOperationScenario().getBombTimer();
-        long elapsed = java.time.Duration.between(session.getBombPlantedTime(), LocalDateTime.now()).getSeconds();
+        long elapsed = java.time.Duration.between(session.getBombPlantedTime(), OffsetDateTime.now(ZoneOffset.UTC)).getSeconds();
         return Math.max(0, totalSeconds - (int) elapsed);
     }
 

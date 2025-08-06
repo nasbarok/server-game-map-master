@@ -17,7 +17,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +113,7 @@ public class FieldController {
         if (owner.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        field.setOpenedAt(LocalDateTime.now());
+        field.setOpenedAt(OffsetDateTime.now(ZoneOffset.UTC));
         field.setActive(true);
         field.setOwner(owner.get()); // Associe le terrain au propriétaire connecté
         Field saved = fieldService.save(field);
@@ -174,10 +175,10 @@ public class FieldController {
         }
 
         String openedAtStr = payload.get("openedAt");
-        LocalDateTime openedAt;
+        OffsetDateTime openedAt;
         try {
             Instant instant = Instant.parse(openedAtStr);
-            openedAt = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
+            openedAt = OffsetDateTime.ofInstant(instant, ZoneId.of("UTC"));
         } catch (Exception e) {
             logger.error("Failed to parse openedAt", e);
             logger.error("Payload: {}", payload);
@@ -230,10 +231,10 @@ public class FieldController {
         }
 
         String closedAtStr = payload.get("closedAt");
-        LocalDateTime closedAt;
+        OffsetDateTime closedAt;
         try {
             Instant instant = Instant.parse(closedAtStr);
-            closedAt = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
+            closedAt = OffsetDateTime.ofInstant(instant, ZoneId.of("UTC"));
         } catch (Exception e) {
             logger.error("Failed to parse closedAt", e);
             logger.error("Payload: {}", payload);

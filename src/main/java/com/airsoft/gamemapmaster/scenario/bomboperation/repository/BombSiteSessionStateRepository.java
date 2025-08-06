@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,7 +60,7 @@ public interface BombSiteSessionStateRepository extends JpaRepository<BombSiteSe
      * Trouve tous les sites qui devraient avoir explosé (temps écoulé)
      */
     @Query("SELECT bsss FROM BombSiteSessionState bsss WHERE bsss.status = 'ARMED' AND bsss.expectedExplosionAt < :currentTime")
-    List<BombSiteSessionState> findSitesThatShouldHaveExploded(@Param("currentTime") LocalDateTime currentTime);
+    List<BombSiteSessionState> findSitesThatShouldHaveExploded(@Param("currentTime") OffsetDateTime currentTime);
     
     /**
      * Compte le nombre de sites par statut pour une session donnée

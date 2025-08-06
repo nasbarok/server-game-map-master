@@ -6,7 +6,7 @@ import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSite;
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSiteSessionState;
 import com.airsoft.gamemapmaster.scenario.bomboperation.model.BombSiteStatus;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -98,7 +98,7 @@ public interface BombSiteSessionStateService {
      * @param bombTimerSeconds Durée du timer en secondes
      * @return État du site armé
      */
-    BombSiteSessionState armBomb(Long gameSessionId, Long originalBombSiteId, Long userId, LocalDateTime actionTime, Integer bombTimerSeconds);
+    BombSiteSessionState armBomb(Long gameSessionId, Long originalBombSiteId, Long userId, OffsetDateTime actionTime, Integer bombTimerSeconds);
 
     /**
      * Désarme une bombe sur un site spécifique
@@ -107,7 +107,7 @@ public interface BombSiteSessionStateService {
      * @param userId ID du joueur qui désarme la bombe
      * @return État du site désarmé
      */
-    BombSiteSessionState disarmBomb(Long gameSessionId, Long originalBombSiteId, Long userId,LocalDateTime actionTime);
+    BombSiteSessionState disarmBomb(Long gameSessionId, Long originalBombSiteId, Long userId,OffsetDateTime actionTime);
 
     /**
      * Fait exploser une bombe sur un site spécifique
@@ -182,6 +182,6 @@ public interface BombSiteSessionStateService {
      * @param timestamp Moment dans le temps
      * @return État des sites à ce moment
      */
-    List<BombSiteHistoryDto> getSitesStateAtTime(Long gameSessionId, java.time.LocalDateTime timestamp);
+    List<BombSiteHistoryDto> getSitesStateAtTime(Long gameSessionId, java.time.OffsetDateTime timestamp);
 }
 

@@ -29,7 +29,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -352,7 +353,7 @@ public class TreasureHuntServiceImpl implements TreasureHuntService {
         treasureFound.setUser(user);
         treasureFound.setTeam(team);
         treasureFound.setGameSessionId(gameSessionId);
-        treasureFound.setFoundAt(LocalDateTime.now());
+        treasureFound.setFoundAt(OffsetDateTime.now(ZoneOffset.UTC));
         treasureFoundRepository.save(treasureFound);
 
         // Mettre à jour le score de l'utilisateur

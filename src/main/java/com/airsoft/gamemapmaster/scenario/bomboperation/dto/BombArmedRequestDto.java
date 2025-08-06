@@ -2,7 +2,7 @@ package com.airsoft.gamemapmaster.scenario.bomboperation.dto;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * DTO pour les requêtes d'armement de bombe.
@@ -13,6 +13,6 @@ public class BombArmedRequestDto {
     
     private Long userId;
     private Long bombSiteId;
-    private LocalDateTime actionTime;
+    private OffsetDateTime actionTime;
 }
 

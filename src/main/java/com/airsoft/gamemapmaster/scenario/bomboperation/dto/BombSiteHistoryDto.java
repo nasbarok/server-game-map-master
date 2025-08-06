@@ -1,7 +1,7 @@
 package com.airsoft.gamemapmaster.scenario.bomboperation.dto;
 
 import lombok.Data;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * DTO pour l'historique d'un site de bombe dans une session
@@ -20,12 +20,12 @@ public class BombSiteHistoryDto {
     private String status;
     
     // Timestamps pour la timeline
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private LocalDateTime activatedAt;
-    private LocalDateTime armedAt;
-    private LocalDateTime disarmedAt;
-    private LocalDateTime explodedAt;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
+    private OffsetDateTime activatedAt;
+    private OffsetDateTime armedAt;
+    private OffsetDateTime disarmedAt;
+    private OffsetDateTime explodedAt;
     
     // Informations sur les joueurs
     private Long armedByUserId;
@@ -35,7 +35,7 @@ public class BombSiteHistoryDto {
     
     // Informations sur le timer
     private Integer bombTimer;
-    private LocalDateTime expectedExplosionAt;
+    private OffsetDateTime expectedExplosionAt;
     
     // Calculs pour le replay
     private Long timeRemainingSeconds;

@@ -9,7 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Component
 public class BombOperationWebSocketService {
@@ -35,7 +36,7 @@ public class BombOperationWebSocketService {
         notification.setRoundNumber(roundNumber);
         notification.setAttackTeamScore(attackTeamScore);
         notification.setDefenseTeamScore(defenseTeamScore);
-        notification.setTimestamp(LocalDateTime.now());
+        notification.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
 
         sendNotification(sessionId, notification);
     }
@@ -59,7 +60,7 @@ public class BombOperationWebSocketService {
         notification.setSiteId(siteId);
         notification.setSiteName(siteName);
         notification.setBombTimer(bombTimer);
-        notification.setTimestamp(LocalDateTime.now());
+        notification.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
 
         sendNotification(sessionId, notification);
     }
@@ -79,7 +80,7 @@ public class BombOperationWebSocketService {
         notification.setSessionId(sessionId);
         notification.setUserId(userId);
         notification.setDefuseTime(defuseTime);
-        notification.setTimestamp(LocalDateTime.now());
+        notification.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
 
         sendNotification(sessionId, notification);
     }
@@ -97,7 +98,7 @@ public class BombOperationWebSocketService {
         notification.setType("DEFUSE_SUCCESS");
         notification.setSessionId(sessionId);
         notification.setUserId(userId);
-        notification.setTimestamp(LocalDateTime.now());
+        notification.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
 
         sendNotification(sessionId, notification);
     }
@@ -112,7 +113,7 @@ public class BombOperationWebSocketService {
         BombOperationNotification notification = new BombOperationNotification();
         notification.setType("BOMB_EXPLODED");
         notification.setSessionId(sessionId);
-        notification.setTimestamp(LocalDateTime.now());
+        notification.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
 
         sendNotification(sessionId, notification);
     }
@@ -139,7 +140,7 @@ public class BombOperationWebSocketService {
         notification.setReason(reason);
         notification.setAttackTeamScore(attackTeamScore);
         notification.setDefenseTeamScore(defenseTeamScore);
-        notification.setTimestamp(LocalDateTime.now());
+        notification.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
 
         sendNotification(sessionId, notification);
     }
@@ -162,7 +163,7 @@ public class BombOperationWebSocketService {
         notification.setWinnerTeam(winnerTeam.toString());
         notification.setAttackTeamScore(attackTeamScore);
         notification.setDefenseTeamScore(defenseTeamScore);
-        notification.setTimestamp(LocalDateTime.now());
+        notification.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
 
         sendNotification(sessionId, notification);
     }
@@ -182,7 +183,7 @@ public class BombOperationWebSocketService {
         notification.setSessionId(sessionId);
         notification.setUserId(userId);
         notification.setIsAlive(isAlive);
-        notification.setTimestamp(LocalDateTime.now());
+        notification.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
 
         sendNotification(sessionId, notification);
     }
@@ -200,7 +201,7 @@ public class BombOperationWebSocketService {
         notification.setType("GAME_STATE_CHANGE");
         notification.setSessionId(sessionId);
         notification.setGameState(gameState.toString());
-        notification.setTimestamp(LocalDateTime.now());
+        notification.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
 
         sendNotification(sessionId, notification);
     }
@@ -217,7 +218,7 @@ public class BombOperationWebSocketService {
         notification.setType("TIMER_UPDATE");
         notification.setSessionId(sessionId);
         notification.setRemainingTime(remainingTime);
-        notification.setTimestamp(LocalDateTime.now());
+        notification.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
 
         sendNotification(sessionId, notification);
     }

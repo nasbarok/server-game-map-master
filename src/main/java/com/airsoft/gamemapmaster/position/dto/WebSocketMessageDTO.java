@@ -1,11 +1,11 @@
 package com.airsoft.gamemapmaster.position.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public class WebSocketMessageDTO {
     private String type;
     private Long senderId;
-    private LocalDateTime timestamp;
+    private OffsetDateTime timestamp;
     private PlayerPositionDTO payload;
 
     // Getters/setters
@@ -26,11 +26,11 @@ public class WebSocketMessageDTO {
         this.senderId = senderId;
     }
 
-    public LocalDateTime getTimestamp() {
+    public OffsetDateTime getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
+    public void setTimestamp(OffsetDateTime timestamp) {
         this.timestamp = timestamp;
     }
 

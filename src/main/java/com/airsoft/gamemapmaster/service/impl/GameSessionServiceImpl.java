@@ -15,7 +15,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -73,7 +74,7 @@ public class GameSessionServiceImpl implements GameSessionService {
 
     @Override
     @Transactional
-    public GameSession startGameSession(Long gameSessionId, LocalDateTime startTime) {
+    public GameSession startGameSession(Long gameSessionId, OffsetDateTime startTime) {
         GameSession gameSession = gameSessionRepository.findById(gameSessionId)
                 .orElseThrow(() -> new RuntimeException("Game session not found with id: " + gameSessionId));
 
@@ -168,7 +169,7 @@ public class GameSessionServiceImpl implements GameSessionService {
 
     @Override
     @Transactional
-    public GameSession endGameSession(Long gameSessionId,LocalDateTime endTime) {
+    public GameSession endGameSession(Long gameSessionId,OffsetDateTime endTime) {
         return gameSessionRepository.findById(gameSessionId)
                 .map(gameSession -> {
                     gameSession.setEndTime(endTime);
@@ -226,7 +227,7 @@ public class GameSessionServiceImpl implements GameSessionService {
             if (participant.getLeftAt() != null) {
                 // Le participant avait quitté, on le fait revenir
                 participant.setLeftAt(null);
-                participant.setCreatedAt(LocalDateTime.now());
+                participant.setCreatedAt(OffsetDateTime.now(ZoneOffset.UTC));
                 if (team != null) {
                     participant.setTeam(team);
                 }
@@ -241,7 +242,7 @@ public class GameSessionServiceImpl implements GameSessionService {
             participant.setGameSession(gameSession);
             participant.setUser(user);
             participant.setTeam(team);
-            participant.setCreatedAt(LocalDateTime.now());
+            participant.setCreatedAt(OffsetDateTime.now(ZoneOffset.UTC));
             return participantRepository.save(participant);
         }
     }
@@ -251,7 +252,7 @@ public class GameSessionServiceImpl implements GameSessionService {
     public GameSessionParticipant removeParticipant(Long gameSessionId, Long userId) {
         return participantRepository.findByGameSessionIdAndUserId(gameSessionId, userId)
                 .map(participant -> {
-                    participant.setLeftAt(LocalDateTime.now());
+                    participant.setLeftAt(OffsetDateTime.now(ZoneOffset.UTC));
                     return participantRepository.save(participant);
                 })
                 .orElseThrow(() -> new RuntimeException("Participant not found for game session id: " + gameSessionId + " and user id: " + userId));
@@ -360,7 +361,7 @@ public class GameSessionServiceImpl implements GameSessionService {
     public GameSession startNewSession(Field field) {
         GameSession gameSession = new GameSession();
         gameSession.setField(field);
-        gameSession.setStartTime(LocalDateTime.now());
+        gameSession.setStartTime(OffsetDateTime.now(ZoneOffset.UTC));
         gameSession.setActive(true);
         return gameSessionRepository.save(gameSession);
     }
@@ -379,7 +380,7 @@ public class GameSessionServiceImpl implements GameSessionService {
     @Transactional
     public void checkAndEndExpiredGameSessions() {
         List<GameSession> activeSessions = gameSessionRepository.findByActiveTrue();
-        LocalDateTime now = LocalDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
         for (GameSession session : activeSessions) {
             if (session.isExpired()) {

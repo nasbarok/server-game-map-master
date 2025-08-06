@@ -6,7 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @NoArgsConstructor
@@ -37,19 +38,19 @@ public class BombOperationPlayerState {
     private Boolean hasDefuseKit = false;
 
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     @Column(nullable = false)
-    private LocalDateTime lastUpdated;
+    private OffsetDateTime lastUpdated;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        lastUpdated = LocalDateTime.now();
+        createdAt = OffsetDateTime.now(ZoneOffset.UTC);
+        lastUpdated = OffsetDateTime.now(ZoneOffset.UTC);
     }
 
     @PreUpdate
     protected void onUpdate() {
-        lastUpdated = LocalDateTime.now();
+        lastUpdated = OffsetDateTime.now(ZoneOffset.UTC);
     }
 }

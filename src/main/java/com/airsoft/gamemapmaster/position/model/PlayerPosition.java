@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * Entité représentant la position d'un joueur à un moment donné
@@ -39,7 +39,7 @@ public class PlayerPosition {
     private Double longitude;
     
     @Column(nullable = false)
-    private LocalDateTime timestamp;
+    private OffsetDateTime timestamp;
 
     public PlayerPositionDTO toDTO() {
         return new PlayerPositionDTO(

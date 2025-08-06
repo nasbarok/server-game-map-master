@@ -5,7 +5,8 @@ import javax.persistence.*;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @NoArgsConstructor
@@ -42,10 +43,10 @@ public class GameSessionParticipant {
     private String participantType; // Ex: "PLAYER", "SPECTATOR"
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private OffsetDateTime createdAt = OffsetDateTime.now(ZoneOffset.UTC);
 
     @Column
-    private LocalDateTime leftAt;
+    private OffsetDateTime leftAt;
 
     @Column
     private Boolean isWinner;
@@ -56,7 +57,7 @@ public class GameSessionParticipant {
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = OffsetDateTime.now(ZoneOffset.UTC);
         }
     }
 }

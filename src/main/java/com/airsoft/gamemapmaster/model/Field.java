@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Data
 @NoArgsConstructor
@@ -42,10 +42,10 @@ public class Field {
     private String imageUrl; // URL de l'image du terrain
 
     @Column(name = "opened_at")
-    private LocalDateTime openedAt;
+    private OffsetDateTime openedAt;
 
     @Column(name = "closed_at")
-    private LocalDateTime closedAt;
+    private OffsetDateTime closedAt;
 
     @Column(name = "active", nullable = false)
     private boolean active = false;

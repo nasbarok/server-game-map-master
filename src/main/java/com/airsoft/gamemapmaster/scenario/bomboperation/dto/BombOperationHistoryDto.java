@@ -1,7 +1,7 @@
 package com.airsoft.gamemapmaster.scenario.bomboperation.dto;
 
 import lombok.Data;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
@@ -12,8 +12,8 @@ import java.util.List;
 public class BombOperationHistoryDto {
     
     private Long gameSessionId;
-    private LocalDateTime sessionStartTime;
-    private LocalDateTime sessionEndTime;
+    private OffsetDateTime sessionStartTime;
+    private OffsetDateTime sessionEndTime;
     private String sessionStatus;
     
     // Informations sur le scénario
@@ -53,7 +53,7 @@ public class BombOperationHistoryDto {
      */
     @Data
     public static class BombEventDto {
-        private LocalDateTime timestamp;
+        private OffsetDateTime timestamp;
         private String eventType; // "ACTIVATED", "ARMED", "DISARMED", "EXPLODED"
         private String siteName;
         private String playerName;
@@ -62,11 +62,11 @@ public class BombOperationHistoryDto {
         private Integer timeRemainingSeconds; // Pour les événements d'armement
 
         private Long userId; // ID du joueur associé à l'événement
-        public LocalDateTime getTimestamp() {
+        public OffsetDateTime getTimestamp() {
             return timestamp;
         }
 
-        public void setTimestamp(LocalDateTime timestamp) {
+        public void setTimestamp(OffsetDateTime timestamp) {
             this.timestamp = timestamp;
         }
 
@@ -242,19 +242,19 @@ public class BombOperationHistoryDto {
         this.gameSessionId = gameSessionId;
     }
 
-    public LocalDateTime getSessionStartTime() {
+    public OffsetDateTime getSessionStartTime() {
         return sessionStartTime;
     }
 
-    public void setSessionStartTime(LocalDateTime sessionStartTime) {
+    public void setSessionStartTime(OffsetDateTime sessionStartTime) {
         this.sessionStartTime = sessionStartTime;
     }
 
-    public LocalDateTime getSessionEndTime() {
+    public OffsetDateTime getSessionEndTime() {
         return sessionEndTime;
     }
 
-    public void setSessionEndTime(LocalDateTime sessionEndTime) {
+    public void setSessionEndTime(OffsetDateTime sessionEndTime) {
         this.sessionEndTime = sessionEndTime;
     }
 

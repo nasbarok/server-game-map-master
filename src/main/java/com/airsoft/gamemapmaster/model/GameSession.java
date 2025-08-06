@@ -6,7 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,9 +30,9 @@ public class GameSession {
     private GameMap gameMap;
 
     @Column(nullable = false)
-    private LocalDateTime startTime;
+    private OffsetDateTime startTime;
 
-    private LocalDateTime endTime;
+    private OffsetDateTime endTime;
     @Column(nullable = false)
     private Integer durationMinutes;
 
@@ -47,7 +48,7 @@ public class GameSession {
     @PrePersist
     protected void onCreate() {
         if (startTime == null) {
-            startTime = LocalDateTime.now();
+            startTime = OffsetDateTime.now(ZoneOffset.UTC);
         }
         if (active == null) {
             active = false;
@@ -59,8 +60,8 @@ public class GameSession {
             return true;
         }
 
-        LocalDateTime expirationTime = startTime.plusMinutes(durationMinutes);
-        return LocalDateTime.now().isAfter(expirationTime);
+        OffsetDateTime expirationTime = startTime.plusMinutes(durationMinutes);
+        return OffsetDateTime.now(ZoneOffset.UTC).isAfter(expirationTime);
     }
 
     public long getRemainingTimeInSeconds() {
@@ -68,8 +69,8 @@ public class GameSession {
             return 0;
         }
 
-        LocalDateTime expirationTime = startTime.plusMinutes(durationMinutes);
-        LocalDateTime now = LocalDateTime.now();
+        OffsetDateTime expirationTime = startTime.plusMinutes(durationMinutes);
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
         if (now.isAfter(expirationTime)) {
             return 0;
