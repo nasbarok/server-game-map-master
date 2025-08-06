@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,8 +25,8 @@ public class GameSessionDTO {
 
     private Long id;
     private Integer durationMinutes;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
+    private OffsetDateTime startTime;
+    private OffsetDateTime endTime;
     private boolean active;
 
     private GameMapDTO gameMap;
@@ -55,8 +57,8 @@ public class GameSessionDTO {
         return new GameSessionDTO(
                 entity.getId(),
                 entity.getDurationMinutes(),
-                entity.getStartTime(),
-                entity.getEndTime(),
+                entity.getStartTime() != null ? entity.getStartTime().atOffset(ZoneOffset.UTC) : null,
+                entity.getEndTime() != null ? entity.getEndTime().atOffset(ZoneOffset.UTC) : null,
                 entity.getActive(),
                 entity.getGameMap() != null ? GameMapDTO.fromEntity(entity.getGameMap()) : null,
                 entity.getField() != null ? FieldDTO.fromEntity(entity.getField()) : null,
