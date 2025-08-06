@@ -2,7 +2,7 @@ package com.airsoft.gamemapmaster.scenario.bomboperation.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -15,9 +15,9 @@ public class BombOperationSessionDto {
     private Integer attackTeamScore;
     private Integer defenseTeamScore;
     private String gameState;
-    private LocalDateTime roundStartTime;
-    private LocalDateTime bombPlantedTime;
-    private LocalDateTime defuseStartTime;
+    private OffsetDateTime roundStartTime;
+    private OffsetDateTime bombPlantedTime;
+    private OffsetDateTime defuseStartTime;
     private List<BombSiteDto> toActiveBombSites;
     private List<BombSiteDto> activeBombSites;
     private List<BombSiteDto> disableBombSites;
@@ -72,27 +72,27 @@ public class BombOperationSessionDto {
         this.gameState = gameState;
     }
 
-    public LocalDateTime getRoundStartTime() {
+    public OffsetDateTime getRoundStartTime() {
         return roundStartTime;
     }
 
-    public void setRoundStartTime(LocalDateTime roundStartTime) {
+    public void setRoundStartTime(OffsetDateTime roundStartTime) {
         this.roundStartTime = roundStartTime;
     }
 
-    public LocalDateTime getBombPlantedTime() {
+    public OffsetDateTime getBombPlantedTime() {
         return bombPlantedTime;
     }
 
-    public void setBombPlantedTime(LocalDateTime bombPlantedTime) {
+    public void setBombPlantedTime(OffsetDateTime bombPlantedTime) {
         this.bombPlantedTime = bombPlantedTime;
     }
 
-    public LocalDateTime getDefuseStartTime() {
+    public OffsetDateTime getDefuseStartTime() {
         return defuseStartTime;
     }
 
-    public void setDefuseStartTime(LocalDateTime defuseStartTime) {
+    public void setDefuseStartTime(OffsetDateTime defuseStartTime) {
         this.defuseStartTime = defuseStartTime;
     }
 

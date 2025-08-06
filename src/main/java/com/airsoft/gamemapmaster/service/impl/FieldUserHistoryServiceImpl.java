@@ -11,7 +11,8 @@ import com.airsoft.gamemapmaster.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -35,7 +36,7 @@ public class FieldUserHistoryServiceImpl implements FieldUserHistoryService {
         FieldUserHistory history = new FieldUserHistory();
         history.setUser(userService.findById(userId).orElseThrow());
         history.setField(fieldService.findById(fieldId).orElseThrow());
-        history.setJoinedAt(LocalDateTime.now());
+        history.setJoinedAt(OffsetDateTime.now(ZoneOffset.UTC));
         history.setSessionClosed(false);
         return fieldUserHistoryRepository.save(history);
     }
@@ -45,9 +46,9 @@ public class FieldUserHistoryServiceImpl implements FieldUserHistoryService {
         Optional<FieldUserHistory> historyOpt = fieldUserHistoryRepository.findLatestByUserIdAndFieldId(userId, fieldId);
         if (historyOpt.isPresent()) {
             FieldUserHistory history = historyOpt.get();
-            history.setLeftAt(LocalDateTime.now());
+            history.setLeftAt(OffsetDateTime.now(ZoneOffset.UTC));
             history.setSessionClosed(true);
-            history.setLeftAt(LocalDateTime.now());
+            history.setLeftAt(OffsetDateTime.now(ZoneOffset.UTC));
             fieldUserHistoryRepository.save(history);
         }
     }
@@ -57,7 +58,7 @@ public class FieldUserHistoryServiceImpl implements FieldUserHistoryService {
         List<FieldUserHistory> sessions = fieldUserHistoryRepository.findByFieldId(fieldId);
         for (FieldUserHistory history : sessions) {
             if (!history.isSessionClosed()) {
-                history.setLeftAt(LocalDateTime.now());
+                history.setLeftAt(OffsetDateTime.now(ZoneOffset.UTC));
                 history.setSessionClosed(true);
                 fieldUserHistoryRepository.save(history);
             }

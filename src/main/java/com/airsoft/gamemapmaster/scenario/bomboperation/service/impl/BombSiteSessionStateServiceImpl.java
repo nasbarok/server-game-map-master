@@ -19,7 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -125,16 +126,16 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
                         List.of(ARMED, BombSiteStatus.DISARMED));
 
         List<BombSiteSessionState> result = new ArrayList<>();
-        LocalDateTime now = LocalDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
         for (BombSiteSessionState state : armedOrDisarmed) {
             // si ARMED, vérifier qu'elle n'a pas dépassé son timer
             if (state.getStatus() == ARMED) {
-                LocalDateTime armedAt = state.getArmedAt();
+                OffsetDateTime armedAt = state.getArmedAt();
                 Integer timer = state.getBombTimer();
 
                 if (armedAt != null && timer != null) {
-                    LocalDateTime expectedExplosion = armedAt.plusSeconds(timer);
+                    OffsetDateTime expectedExplosion = armedAt.plusSeconds(timer);
                     if (now.isAfter(expectedExplosion)) {
                         // Bombe expirée, ne pas la renvoyer
                         continue;
@@ -155,7 +156,7 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
                         List.of(BombSiteStatus.EXPLODED, ARMED));
 
         List<BombSiteSessionState> result = new ArrayList<>();
-        LocalDateTime now = LocalDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
         for (BombSiteSessionState state : allStates) {
             if (state.getStatus() == BombSiteStatus.EXPLODED) {
@@ -164,11 +165,11 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
             }
 
             if (state.getStatus() == ARMED) {
-                LocalDateTime armedAt = state.getArmedAt();
+                OffsetDateTime armedAt = state.getArmedAt();
                 Integer bombTimer = state.getBombTimer();
 
                 if (armedAt != null && bombTimer != null) {
-                    LocalDateTime explosionTime = armedAt.plusSeconds(bombTimer);
+                    OffsetDateTime explosionTime = armedAt.plusSeconds(bombTimer);
                     if (now.isAfter(explosionTime)) {
                         result.add(state);
                     }
@@ -226,7 +227,7 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
     }
     
     @Override
-    public BombSiteSessionState armBomb(Long gameSessionId, Long bombSiteId, Long userId,LocalDateTime actionTime, Integer bombTimerSeconds) {
+    public BombSiteSessionState armBomb(Long gameSessionId, Long bombSiteId, Long userId,OffsetDateTime actionTime, Integer bombTimerSeconds) {
         logger.info("Armement de la bombe sur le site {} par l'utilisateur {} (session: {})",
                 bombSiteId, userId, gameSessionId);
 
@@ -245,7 +246,7 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
     }
     
     @Override
-    public BombSiteSessionState disarmBomb(Long gameSessionId, Long bombSiteId, Long userId,LocalDateTime actionTime) {
+    public BombSiteSessionState disarmBomb(Long gameSessionId, Long bombSiteId, Long userId,OffsetDateTime actionTime) {
         logger.info("Désarmement de la bombe sur le site {} par l'utilisateur {} (session: {})",
                 bombSiteId, userId, gameSessionId);
 
@@ -285,7 +286,7 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
         logger.debug("Vérification des bombes expirées pour la session {}", gameSessionId);
         
         List<BombSiteSessionState> expiredBombs = bombSiteSessionStateRepository
-                .findSitesThatShouldHaveExploded(LocalDateTime.now())
+                .findSitesThatShouldHaveExploded(OffsetDateTime.now(ZoneOffset.UTC))
                 .stream()
                 .filter(site -> site.getGameSessionId().equals(gameSessionId))
                 .collect(Collectors.toList());
@@ -537,7 +538,7 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
     }
 
     @Override
-    public List<BombSiteHistoryDto> getSitesStateAtTime(Long gameSessionId, LocalDateTime timestamp) {
+    public List<BombSiteHistoryDto> getSitesStateAtTime(Long gameSessionId, OffsetDateTime timestamp) {
         List<BombSiteSessionState> allSites = getAllSessionStates(gameSessionId);
 
         return allSites.stream()
@@ -581,7 +582,7 @@ public class BombSiteSessionStateServiceImpl implements BombSiteSessionStateServ
         return dto;
     }
 
-    private BombSiteHistoryDto convertToHistoryDtoAtTime(BombSiteSessionState site, LocalDateTime timestamp) {
+    private BombSiteHistoryDto convertToHistoryDtoAtTime(BombSiteSessionState site, OffsetDateTime timestamp) {
         BombSiteHistoryDto dto = convertToHistoryDto(site);
 
         // Déterminer l'état du site au moment donné

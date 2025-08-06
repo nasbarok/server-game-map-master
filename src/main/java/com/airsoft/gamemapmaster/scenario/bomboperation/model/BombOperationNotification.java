@@ -6,7 +6,7 @@ import com.airsoft.gamemapmaster.websocket.WebSocketMessage;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Data
@@ -49,7 +49,7 @@ public class BombOperationNotification {
     private String gameState;
 
     // Horodatage
-    private LocalDateTime timestamp;
+    private OffsetDateTime timestamp;
 
     // Liste d'identifiants de sites actifs
     private List<Long> activeBombSiteIds;
@@ -217,11 +217,11 @@ public class BombOperationNotification {
         this.gameState = gameState;
     }
 
-    public LocalDateTime getTimestamp() {
+    public OffsetDateTime getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
+    public void setTimestamp(OffsetDateTime timestamp) {
         this.timestamp = timestamp;
     }
 

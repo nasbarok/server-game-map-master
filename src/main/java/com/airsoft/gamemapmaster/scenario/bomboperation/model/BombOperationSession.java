@@ -6,7 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,13 +43,13 @@ public class BombOperationSession {
     private BombOperationState gameState = BombOperationState.WAITING;
 
     @Column
-    private LocalDateTime roundStartTime;
+    private OffsetDateTime roundStartTime;
 
     @Column
-    private LocalDateTime bombPlantedTime;
+    private OffsetDateTime bombPlantedTime;
 
     @Column
-    private LocalDateTime defuseStartTime;
+    private OffsetDateTime defuseStartTime;
 
     @ElementCollection
     @CollectionTable(name = "bomb_operation_active_sites", joinColumns = @JoinColumn(name = "bomb_operation_session_id"))
@@ -56,20 +57,20 @@ public class BombOperationSession {
     private List<Long> activeBombSiteIds = new ArrayList<>();
 
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     @Column(nullable = false)
-    private LocalDateTime lastUpdated;
+    private OffsetDateTime lastUpdated;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        lastUpdated = LocalDateTime.now();
+        createdAt = OffsetDateTime.now(ZoneOffset.UTC);
+        lastUpdated = OffsetDateTime.now(ZoneOffset.UTC);
     }
 
     @PreUpdate
     protected void onUpdate() {
-        lastUpdated = LocalDateTime.now();
+        lastUpdated = OffsetDateTime.now(ZoneOffset.UTC);
     }
 
     public BombOperationSessionDto toDto(Map<Long, String> teamRoles) {

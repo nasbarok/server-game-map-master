@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -40,9 +40,9 @@ public class Scenario {
     @Column(nullable = false)
     private String type; // Type de scénario (ex: "treasure_hunt", "capture_flag", etc.)
     
-    private LocalDateTime startTime;
+    private OffsetDateTime startTime;
     
-    private LocalDateTime endTime;
+    private OffsetDateTime endTime;
     
     private Integer maxPlayers;
     

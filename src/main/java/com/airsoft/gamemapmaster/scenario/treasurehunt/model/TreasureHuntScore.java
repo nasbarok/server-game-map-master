@@ -7,7 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @NoArgsConstructor
@@ -43,20 +44,20 @@ public class TreasureHuntScore {
     private Integer treasuresFound = 0;
 
     @Column(nullable = false)
-    private LocalDateTime lastUpdated;
+    private OffsetDateTime lastUpdated;
 
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        lastUpdated = LocalDateTime.now();
+        createdAt = OffsetDateTime.now(ZoneOffset.UTC);
+        lastUpdated = OffsetDateTime.now(ZoneOffset.UTC);
     }
 
     @PreUpdate
     protected void onUpdate() {
-        lastUpdated = LocalDateTime.now();
+        lastUpdated = OffsetDateTime.now(ZoneOffset.UTC);
     }
 
     public void incrementScore(Integer points) {

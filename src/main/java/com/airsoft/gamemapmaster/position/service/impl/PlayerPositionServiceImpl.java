@@ -19,8 +19,8 @@ import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityNotFoundException;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 /**
@@ -42,7 +42,7 @@ public class PlayerPositionServiceImpl implements PlayerPositionService {
     public PlayerPositionDTO savePosition(PlayerPositionDTO positionDTO) {
         // Si l'horodatage n'est pas fourni, utiliser l'heure actuelle
         if (positionDTO.getTimestamp() == null) {
-            positionDTO.setTimestamp(LocalDateTime.now());
+            positionDTO.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
         }
         
         // Convertir le DTO en entité
@@ -182,6 +182,6 @@ public class PlayerPositionServiceImpl implements PlayerPositionService {
     public Optional<Instant> getLastSavedTimestamp(Long userId) {
         return playerPositionRepository
                 .findTopByUserIdOrderByTimestampDesc(userId)
-                .map(pos -> pos.getTimestamp().atZone(ZoneId.systemDefault()).toInstant());
+                .map(pos -> pos.getTimestamp().toInstant());
     }
 }

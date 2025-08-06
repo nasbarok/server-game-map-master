@@ -10,9 +10,7 @@ import lombok.NoArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,8 +55,8 @@ public class GameSessionDTO {
         return new GameSessionDTO(
                 entity.getId(),
                 entity.getDurationMinutes(),
-                entity.getStartTime() != null ? entity.getStartTime().atOffset(ZoneOffset.UTC) : null,
-                entity.getEndTime() != null ? entity.getEndTime().atOffset(ZoneOffset.UTC) : null,
+                entity.getStartTime(),
+                entity.getEndTime(),
                 entity.getActive(),
                 entity.getGameMap() != null ? GameMapDTO.fromEntity(entity.getGameMap()) : null,
                 entity.getField() != null ? FieldDTO.fromEntity(entity.getField()) : null,

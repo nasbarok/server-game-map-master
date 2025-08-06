@@ -7,7 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @NoArgsConstructor
@@ -36,10 +37,10 @@ public class TreasureFound {
     private Long gameSessionId;
 
     @Column(nullable = false)
-    private LocalDateTime foundAt;
+    private OffsetDateTime foundAt;
     
     @PrePersist
     protected void onCreate() {
-        foundAt = LocalDateTime.now();
+        foundAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
 }

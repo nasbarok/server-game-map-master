@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Data
 @NoArgsConstructor
@@ -23,8 +23,8 @@ public class GameSessionParticipantDTO {
 
     private String participantType;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime leftAt;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime leftAt;
 
     private Boolean isWinner;
     private Long scoreId;

@@ -4,7 +4,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 /**
  * Entité représentant l'état d'un site de bombe dans une session de jeu
@@ -68,33 +69,33 @@ public class BombSiteSessionState {
      * Timestamp de création de cet état
      */
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
     
     /**
      * Timestamp de la dernière mise à jour de l'état
      */
     @Column(nullable = false)
-    private LocalDateTime updatedAt;
+    private OffsetDateTime updatedAt;
     
     /**
      * Timestamp d'activation du site (quand il devient ACTIVE)
      */
-    private LocalDateTime activatedAt;
+    private OffsetDateTime activatedAt;
     
     /**
      * Timestamp d'armement (quand il devient ARMED)
      */
-    private LocalDateTime armedAt;
+    private OffsetDateTime armedAt;
     
     /**
      * Timestamp de désarmement (quand il devient DISARMED)
      */
-    private LocalDateTime disarmedAt;
+    private OffsetDateTime disarmedAt;
     
     /**
      * Timestamp d'explosion (quand il devient EXPLODED)
      */
-    private LocalDateTime explodedAt;
+    private OffsetDateTime explodedAt;
     
     /**
      * ID du joueur qui a armé la bombe (si applicable)
@@ -114,14 +115,14 @@ public class BombSiteSessionState {
     /**
      * Timestamp prévu d'explosion (armedAt + bombTimer)
      */
-    private LocalDateTime expectedExplosionAt;
+    private OffsetDateTime expectedExplosionAt;
     
     /**
      * Constructeur par défaut
      */
     public BombSiteSessionState() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.createdAt = OffsetDateTime.now(ZoneOffset.UTC);
+        this.updatedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
     
     /**
@@ -142,7 +143,7 @@ public class BombSiteSessionState {
      */
     @PreUpdate
     public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
     
     /**
@@ -150,14 +151,14 @@ public class BombSiteSessionState {
      */
     public void activate() {
         this.status = BombSiteStatus.ACTIVE;
-        this.activatedAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.activatedAt = OffsetDateTime.now(ZoneOffset.UTC);
+        this.updatedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
     
     /**
      * Arme la bombe sur ce site
      */
-    public void arm(Long userId, Integer bombTimerSeconds,LocalDateTime armedAt) {
+    public void arm(Long userId, Integer bombTimerSeconds,OffsetDateTime armedAt) {
         this.status = BombSiteStatus.ARMED;
         this.armedAt = armedAt;
         this.armedByUserId = userId;
@@ -169,7 +170,7 @@ public class BombSiteSessionState {
     /**
      * Désarme la bombe sur ce site
      */
-    public void disarm(Long userId,LocalDateTime disarmedAt) {
+    public void disarm(Long userId,OffsetDateTime disarmedAt) {
         this.status = BombSiteStatus.DISARMED;
         this.disarmedAt = disarmedAt;
         this.disarmedByUserId = userId;
@@ -181,8 +182,8 @@ public class BombSiteSessionState {
      */
     public void explode() {
         this.status = BombSiteStatus.EXPLODED;
-        this.explodedAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.explodedAt = OffsetDateTime.now(ZoneOffset.UTC);
+        this.updatedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
     
     /**
@@ -191,7 +192,7 @@ public class BombSiteSessionState {
     public void deactivate() {
         this.status = BombSiteStatus.INACTIVE;
         this.activatedAt = null;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
     
     /**
@@ -228,7 +229,7 @@ public class BombSiteSessionState {
     public boolean shouldHaveExploded() {
         return isArmed() && 
                expectedExplosionAt != null && 
-               LocalDateTime.now().isAfter(expectedExplosionAt);
+               OffsetDateTime.now(ZoneOffset.UTC).isAfter(expectedExplosionAt);
     }
     
     /**
@@ -240,7 +241,7 @@ public class BombSiteSessionState {
             return 0;
         }
         
-        LocalDateTime now = LocalDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         if (now.isAfter(expectedExplosionAt)) {
             return 0;
         }

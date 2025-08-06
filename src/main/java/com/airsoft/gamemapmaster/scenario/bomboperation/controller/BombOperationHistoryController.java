@@ -13,7 +13,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
@@ -87,7 +87,7 @@ public class BombOperationHistoryController {
     @GetMapping("/{gameSessionId}/state-at-time")
     public ResponseEntity<List<BombSiteHistoryDto>> getSitesStateAtTime(
             @PathVariable Long gameSessionId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime timestamp) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime timestamp) {
         try {
             List<BombSiteHistoryDto> sitesState = bombSiteSessionStateService.getSitesStateAtTime(gameSessionId, timestamp);
             return ResponseEntity.ok(sitesState);

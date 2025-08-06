@@ -3,7 +3,7 @@ package com.airsoft.gamemapmaster.service;
 import com.airsoft.gamemapmaster.model.*;
 import org.springframework.data.jpa.repository.Query;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.List;
 
@@ -11,8 +11,8 @@ public interface GameSessionService {
 
     // Méthodes pour GameSession
     GameSession createGameSession(GameSession gameSession);
-    GameSession startGameSession(Long gameSessionId, LocalDateTime startTime);
-    GameSession endGameSession(Long gameSessionId,LocalDateTime endTime);
+    GameSession startGameSession(Long gameSessionId, OffsetDateTime startTime);
+    GameSession endGameSession(Long gameSessionId,OffsetDateTime endTime);
     Optional<GameSession> findById(Long gameSessionId);
     Optional<GameSession> findActiveGameSession(Long gameSessionId);
     List<GameSession> findAllActiveGameSessions();

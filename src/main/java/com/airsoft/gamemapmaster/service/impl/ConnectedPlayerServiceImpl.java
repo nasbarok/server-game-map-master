@@ -12,7 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -162,7 +163,7 @@ public class ConnectedPlayerServiceImpl implements ConnectedPlayerService {
             ConnectedPlayer cp = existingPlayer.get();
             cp.setField(field);
             cp.setGameMap(gameMap);
-            cp.setJoinedAt(LocalDateTime.now());
+            cp.setJoinedAt(OffsetDateTime.now(ZoneOffset.UTC));
             if (!cp.isActive()) {
                 cp.setActive(true);
                 return connectedPlayerRepository.save(cp);

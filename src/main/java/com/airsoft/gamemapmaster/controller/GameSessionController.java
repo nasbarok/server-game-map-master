@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.*;
 
@@ -68,10 +68,10 @@ public class GameSessionController {
         logger.info("▶️ Requête POST /api/game-sessions/{}/start reçue", id);
 
         String startTimeStr = payload.get("startTime");
-        LocalDateTime startTime;
+        OffsetDateTime startTime;
         try {
             Instant instant = Instant.parse(startTimeStr);
-            startTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
+            startTime = OffsetDateTime.ofInstant(instant, ZoneId.of("UTC"));
         } catch (Exception e) {
             logger.error("Failed to parse startTime", e);
             logger.error("Payload: {}", payload);
@@ -118,10 +118,10 @@ public class GameSessionController {
         logger.info("▶️ Requête POST /api/game-sessions/{}/end reçue", id);
 
         String endTimeStr = payload.get("endTime");
-        LocalDateTime endTime;
+        OffsetDateTime endTime;
         try {
             Instant instant = Instant.parse(endTimeStr);
-            endTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
+            endTime = OffsetDateTime.ofInstant(instant, ZoneId.of("UTC"));
         } catch (Exception e) {
             logger.error("Failed to parse endTime", e);
             logger.error("Payload: {}", payload);

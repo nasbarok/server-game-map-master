@@ -5,7 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @NoArgsConstructor
@@ -32,14 +33,14 @@ public class ConnectedPlayer {
     private Team team;
     
     @Column(nullable = false)
-    private LocalDateTime joinedAt;
+    private OffsetDateTime joinedAt;
     
     @Column(nullable = false)
     private boolean active = true;
     
     @PrePersist
     protected void onCreate() {
-        joinedAt = LocalDateTime.now();
+        joinedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
 
     @ManyToOne

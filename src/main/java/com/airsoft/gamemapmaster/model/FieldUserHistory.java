@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "field_user_history")
@@ -27,10 +27,10 @@ public class FieldUserHistory {
     private User user;
 
     @Column(name = "joined_at", nullable = false)
-    private LocalDateTime joinedAt;
+    private OffsetDateTime joinedAt;
 
     @Column(name = "left_at")
-    private LocalDateTime leftAt;
+    private OffsetDateTime leftAt;
 
     @Column(name = "session_closed", nullable = false)
     private boolean sessionClosed = false;

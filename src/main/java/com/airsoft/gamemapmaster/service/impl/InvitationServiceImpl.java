@@ -9,7 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.airsoft.gamemapmaster.service.ConnectedPlayerService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,7 +68,7 @@ public class InvitationServiceImpl implements InvitationService {
                 && "PENDING".equals(invitation.get().getStatus())) {
             Invitation invitationToUpdate = invitation.get();
             invitationToUpdate.setStatus("ACCEPTED");
-            invitationToUpdate.setRespondedAt(LocalDateTime.now());
+            invitationToUpdate.setRespondedAt(OffsetDateTime.now(ZoneOffset.UTC));
             return Optional.of(invitationRepository.save(invitationToUpdate));
         }
 
@@ -83,7 +84,7 @@ public class InvitationServiceImpl implements InvitationService {
                 && "PENDING".equals(invitation.get().getStatus())) {
             Invitation invitationToUpdate = invitation.get();
             invitationToUpdate.setStatus("DECLINED");
-            invitationToUpdate.setRespondedAt(LocalDateTime.now());
+            invitationToUpdate.setRespondedAt(OffsetDateTime.now(ZoneOffset.UTC));
             return Optional.of(invitationRepository.save(invitationToUpdate));
         }
 
