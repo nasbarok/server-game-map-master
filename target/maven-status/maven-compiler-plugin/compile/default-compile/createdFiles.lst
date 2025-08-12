@@ -25,6 +25,7 @@ com\airsoft\gamemapmaster\scenario\bomboperation\dto\BombOperationHistoryDto$Bom
 com\airsoft\gamemapmaster\scenario\bomboperation\repository\BombOperationPlayerStateRepository.class
 com\airsoft\gamemapmaster\scenario\bomboperation\model\BombSiteStatus.class
 com\airsoft\gamemapmaster\scenario\bomboperation\repository\BombOperationScoreRepository.class
+com\airsoft\gamemapmaster\model\enums\InvitationStatus.class
 com\airsoft\gamemapmaster\repository\GameMapRepository.class
 com\airsoft\gamemapmaster\model\DTO\TeamDTO.class
 com\airsoft\gamemapmaster\controller\PlayerConnectionController.class

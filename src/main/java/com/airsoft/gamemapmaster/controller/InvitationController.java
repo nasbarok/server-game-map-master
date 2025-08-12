@@ -1,8 +1,12 @@
 package com.airsoft.gamemapmaster.controller;
 
+import com.airsoft.gamemapmaster.model.DTO.CreateInvitationRequest;
+import com.airsoft.gamemapmaster.model.DTO.InvitationDTO;
+import com.airsoft.gamemapmaster.model.DTO.RespondInvitationRequest;
 import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.Invitation;
 import com.airsoft.gamemapmaster.model.User;
+import com.airsoft.gamemapmaster.security.AuthUser;
 import com.airsoft.gamemapmaster.security.jwt.JwtAuthenticationFilter;
 import com.airsoft.gamemapmaster.service.FieldService;
 import com.airsoft.gamemapmaster.service.InvitationService;
@@ -11,11 +15,19 @@ import com.airsoft.gamemapmaster.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import javax.persistence.EntityNotFoundException;
+import javax.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,31 +48,214 @@ public class InvitationController {
 
     @Autowired
     private FieldService fieldService;
-    
+
     /**
      * Crée une invitation pour un utilisateur à rejoindre un scénario
      */
     @PostMapping
-    public ResponseEntity<?> createInvitation(@RequestParam("fieldId") Long fieldId,
-                                             @RequestParam("userId") Long userId,
-                                             Authentication authentication) {
-        String username = authentication.getName();
-        Optional<User> currentUser = userService.findByUsername(username);
-        
-        if (currentUser.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
+    public ResponseEntity<InvitationDTO> createInvitation(
+            @Valid @RequestBody CreateInvitationRequest request,
+            Authentication authentication) {
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Non authentifié");
         }
 
-        Field field = fieldService.findById(fieldId).orElse(null);
+        Long currentUserId = ((AuthUser) authentication.getPrincipal()).getId();
 
-        if(field == null){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Terrain non trouvé");
+        if (request.getTargetUserId() != null && request.getTargetUserId().equals(currentUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Impossible de s’auto‑inviter");
         }
-        Invitation invitation = invitationService.createInvitation(fieldId, userId);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(invitation);
+        try {
+            InvitationDTO invitation = invitationService.createOrGetInvitation(
+                    request.getFieldId(), currentUserId, request.getTargetUserId());
+            return ResponseEntity.ok(invitation);
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Invitation déjà existante", e);
+        }
     }
-    
+
+    /**
+     * Récupérer les invitations envoyées pour un terrain
+     */
+    @GetMapping("/sent")
+    public ResponseEntity<List<InvitationDTO>> getSentInvitations(
+            @RequestParam Long fieldId,
+            @AuthenticationPrincipal AuthUser authUser) {
+
+        if (authUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Non authentifié");
+        }
+        Long currentUserId = authUser.getId();
+
+        // Vérification que l'utilisateur est bien propriétaire du terrain
+        Field field = fieldService.findById(fieldId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Terrain introuvable"));
+        if (!field.getOwner().getId().equals(currentUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé : vous n'êtes pas propriétaire de ce terrain");
+        }
+
+        try {
+            List<InvitationDTO> invitations =
+                    invitationService.getSentInvitations(currentUserId, fieldId);
+            return ResponseEntity.ok(invitations);
+
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Impossible de récupérer les invitations", e);
+        }
+    }
+
+    /**
+     * Récupérer les invitations reçues
+     */
+    @GetMapping("/received")
+    public ResponseEntity<List<InvitationDTO>> getReceivedInvitations(
+            @AuthenticationPrincipal AuthUser authUser) {
+
+        if (authUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Non authentifié");
+        }
+        Long currentUserId = authUser.getId();
+
+        try {
+            List<InvitationDTO> invitations =
+                    invitationService.getReceivedInvitations(currentUserId);
+
+            return ResponseEntity.ok(invitations);
+
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Impossible de récupérer les invitations", e);
+        }
+    }
+
+    /**
+     * Répondre à une invitation
+     */
+    @PostMapping("/{invitationId}/respond")
+    public ResponseEntity<InvitationDTO> respondToInvitation(
+            @PathVariable Long invitationId,
+            @RequestBody RespondInvitationRequest request,
+            @AuthenticationPrincipal AuthUser authUser) {
+
+        if (authUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Non authentifié");
+        }
+        Long currentUserId = authUser.getId();
+
+        try {
+            InvitationDTO invitation = invitationService.respondToInvitation(
+                    invitationId,
+                    currentUserId,
+                    request.isAccepted()
+            );
+
+            return ResponseEntity.ok(invitation);
+
+        } catch (EntityNotFoundException e) {
+            // Invitation inexistante
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (AccessDeniedException e) {
+            // L'utilisateur ne peut pas répondre à cette invitation
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé", e);
+        } catch (IllegalStateException e) {
+            // Invitation expirée ou déjà traitée
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage(), e);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erreur lors du traitement de l'invitation", e);
+        }
+    }
+
+    /**
+     * Annuler une invitation
+     */
+    @DeleteMapping("/{invitationId}")
+    public ResponseEntity<InvitationDTO> cancelInvitation(
+            @PathVariable Long invitationId,
+            @AuthenticationPrincipal AuthUser authUser) {
+
+        if (authUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Non authentifié");
+        }
+        Long currentUserId = authUser.getId();
+
+        try {
+            InvitationDTO invitation = invitationService.cancelInvitation(invitationId, currentUserId);
+            return ResponseEntity.ok(invitation);
+
+        } catch (EntityNotFoundException e) {
+            // invitation inexistante
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            // l’utilisateur n’est pas l’émetteur (ou non autorisé à annuler).
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé", e);
+
+        } catch (IllegalStateException e) {
+            // déjà acceptée/expirée/annulée
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Compter les invitations en attente (pour les badges)
+     */
+    @GetMapping("/count/pending")
+    public ResponseEntity<Long> countPendingInvitations(
+            @RequestParam Long fieldId,
+            @AuthenticationPrincipal AuthUser authUser) {
+
+        if (authUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Non authentifié");
+        }
+        Long currentUserId = authUser.getId();
+
+        // Vérifie que le host est bien propriétaire du terrain
+        var field = fieldService.findById(fieldId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Terrain introuvable"));
+        if (!field.getOwner().getId().equals(currentUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé : vous n'êtes pas propriétaire de ce terrain");
+        }
+
+        try {
+            long count = invitationService.countPendingInvitations(currentUserId, fieldId);
+            return ResponseEntity.ok(count);
+
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Impossible de compter les invitations", e);
+        }
+    }
+    /**
+     * Compter les invitations reçues en attente (pour les badges)
+     */
+    @GetMapping("/count/received")
+    public ResponseEntity<Long> countReceivedPendingInvitations(
+            @AuthenticationPrincipal AuthUser authUser) {
+
+        if (authUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Non authentifié");
+        }
+        Long currentUserId = authUser.getId();
+
+        try {
+            long count = invitationService.countReceivedPendingInvitations(currentUserId);
+            return ResponseEntity.ok(count);
+
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Impossible de compter les invitations reçues", e);
+        }
+    }
+
     /**
      * Récupère toutes les invitations pour l'utilisateur connecté
      */
@@ -153,28 +348,5 @@ public class InvitationController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Invitation non trouvée ou déjà traitée");
         }
-    }
-    
-    /**
-     * Annule une invitation
-     */
-    @DeleteMapping("/{invitationId}")
-    public ResponseEntity<?> cancelInvitation(@PathVariable("invitationId") Long invitationId,
-                                             Authentication authentication) {
-        String username = authentication.getName();
-        Optional<User> user = userService.findByUsername(username);
-        
-        if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
-        }
-        
-        boolean cancelled = invitationService.cancelInvitation(invitationId, user.get().getId());
-        
-        if (!cancelled) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("Vous n'êtes pas autorisé à annuler cette invitation ou elle n'existe pas");
-        }
-        
-        return ResponseEntity.ok(Map.of("message", "Invitation annulée avec succès"));
     }
 }

@@ -1,5 +1,6 @@
 package com.airsoft.gamemapmaster.service;
 
+import com.airsoft.gamemapmaster.model.DTO.InvitationDTO;
 import com.airsoft.gamemapmaster.model.Invitation;
 import com.airsoft.gamemapmaster.model.Scenario;
 import com.airsoft.gamemapmaster.model.Team;
@@ -12,10 +13,9 @@ public interface InvitationService {
     
     /**
      * Crée une invitation pour un utilisateur à rejoindre un scénario
-     * @param userId ID de l'utilisateur
      * @return L'invitation créée
      */
-    Invitation createInvitation(Long fieldId, Long userId);
+    Invitation createInvitation(Long fieldId, Long targeted_userId, User sender_user);
     
     /**
      * Récupère toutes les invitations pour un utilisateur
@@ -54,7 +54,7 @@ public interface InvitationService {
      * @param userId ID de l'utilisateur qui annule l'invitation (doit être le créateur du scénario)
      * @return true si l'invitation a été annulée, false sinon
      */
-    boolean cancelInvitation(Long invitationId, Long userId);
+    InvitationDTO cancelInvitation(Long invitationId, Long userId);
     
     /**
      * Récupère une invitation par son ID
@@ -62,4 +62,12 @@ public interface InvitationService {
      * @return L'invitation si elle existe
      */
     Optional<Invitation> getInvitationById(Long invitationId);
+
+    InvitationDTO createOrGetInvitation(Long fieldId, Long senderId, Long targetUserId);
+    List<InvitationDTO> getSentInvitations(Long senderId, Long fieldId);
+    List<InvitationDTO> getReceivedInvitations(Long userId);
+    InvitationDTO respondToInvitation(Long invitationId, Long userId, boolean accepted);
+    int expireInvitationsForClosedField(Long fieldId);
+    long countPendingInvitations(Long senderId, Long fieldId);
+    long countReceivedPendingInvitations(Long userId);
 }

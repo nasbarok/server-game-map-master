@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: invitations-structure-001-add-sender-id
+      author: nasbarok
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+          - columnExists:
+              tableName: invitations
+              columnName: sender_id
+      changes:
+        - addColumn:
+            tableName: invitations
+            columns:
+              - column:
+                  name: sender_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: invitations-structure-002-add-target-user-id
+      author: nasbarok
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: invitations
+                columnName: target_user_id
+      changes:
+        - addColumn:
+            tableName: invitations
+            columns:
+              - column:
+                  name: target_user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: invitations-structure-003-drop-user-id
+      author: nasbarok
+      changes:
+        - dropColumn:
+            tableName: invitations
+            columnName: user_id
+
+  - changeSet:
+      id: invitations-structure-004-alter-status-type
+      author: nasbarok
+      changes:
+        - modifyDataType:
+            tableName: invitations
+            columnName: status
+            newDataType: VARCHAR(32)

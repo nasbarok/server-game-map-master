@@ -1,5 +1,6 @@
 package com.airsoft.gamemapmaster.model;
 
+import com.airsoft.gamemapmaster.model.enums.InvitationStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -23,15 +24,22 @@ public class Invitation {
     @JoinColumn(name = "field_id", nullable = false)
     private Field field;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sender_id", nullable = false)
+    private User sender;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_user_id", nullable = false)
+    private User targetUser;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // "PENDING", "ACCEPTED", "DECLINED"
+    private InvitationStatus status = InvitationStatus.PENDING;
 
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime respondedAt;
 
     @PrePersist

@@ -50,4 +50,11 @@ public class FieldServiceImpl implements FieldService {
         List<Field> results = fieldRepository.findLastOpenedFieldByOwner(ownerId);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
+
+    @Override
+    public boolean isOpen(Long fieldId) {
+        Optional<Field> field = fieldRepository.findById(fieldId);
+        return field.isPresent() && field.get().getClosedAt() == null;
+
+    }
 }

@@ -7,6 +7,7 @@ import com.airsoft.gamemapmaster.repository.FieldRepository;
 import com.airsoft.gamemapmaster.repository.FieldUserHistoryRepository;
 import com.airsoft.gamemapmaster.service.FieldService;
 import com.airsoft.gamemapmaster.service.FieldUserHistoryService;
+import com.airsoft.gamemapmaster.service.InvitationService;
 import com.airsoft.gamemapmaster.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,16 +21,17 @@ import java.util.Optional;
 @Service
 public class FieldUserHistoryServiceImpl implements FieldUserHistoryService {
 
+    private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(FieldUserHistoryServiceImpl.class);
     @Autowired
     private FieldUserHistoryRepository fieldUserHistoryRepository;
-
     @Autowired
     private FieldRepository fieldRepository;
     @Autowired
     private UserService userService;
-
     @Autowired
     private FieldService fieldService;
+    @Autowired
+    private InvitationService invitationService;
 
     @Override
     public FieldUserHistory logJoin(Long userId, Long fieldId) {
@@ -63,6 +65,10 @@ public class FieldUserHistoryServiceImpl implements FieldUserHistoryService {
                 fieldUserHistoryRepository.save(history);
             }
         }
+        int expiredCount = invitationService.expireInvitationsForClosedField(fieldId);
+
+        // Log pour debug
+        logger.info("Terrain fermé : {} invitations expirées", expiredCount);
     }
 
     @Override
@@ -74,7 +80,7 @@ public class FieldUserHistoryServiceImpl implements FieldUserHistoryService {
 
     @Override
     public boolean deleteHistoryEntryIfOwnedByUser(Long historyId, User user) {
-        List<FieldUserHistory> historyListOpt = fieldUserHistoryRepository.findAllFieldUserHistoriesByUserIdAndFieldId(user.getId(),historyId);
+        List<FieldUserHistory> historyListOpt = fieldUserHistoryRepository.findAllFieldUserHistoriesByUserIdAndFieldId(user.getId(), historyId);
 
         for (FieldUserHistory history : historyListOpt) {
             if (history.getUser().getId().equals(user.getId())) {

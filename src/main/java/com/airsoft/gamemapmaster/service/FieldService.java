@@ -15,4 +15,5 @@ public interface FieldService {
     List<Field> findByOwnerIdAndActiveTrue(Long id);
     public Optional<Field> findLastOpenedFieldByOwner(Long ownerId);
 
+    boolean isOpen(Long fieldId);
 }
