@@ -39,7 +39,7 @@ public class Invitation {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "responded_at", nullable = false)
     private OffsetDateTime respondedAt;
 
     @PrePersist

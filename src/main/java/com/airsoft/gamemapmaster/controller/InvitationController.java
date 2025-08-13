@@ -86,6 +86,7 @@ public class InvitationController {
             @RequestParam Long fieldId,
             @AuthenticationPrincipal AuthUser authUser) {
 
+        logger.info("Récupérer les invitations envoyées pour le terrain {}", fieldId);
         if (authUser == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Non authentifié");
         }
