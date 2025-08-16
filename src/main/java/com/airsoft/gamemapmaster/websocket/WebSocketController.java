@@ -1,10 +1,8 @@
 package com.airsoft.gamemapmaster.websocket;
 
 import com.airsoft.gamemapmaster.controller.GameMapController;
-import com.airsoft.gamemapmaster.model.ConnectedPlayer;
-import com.airsoft.gamemapmaster.model.Field;
-import com.airsoft.gamemapmaster.model.Team;
-import com.airsoft.gamemapmaster.model.User;
+import com.airsoft.gamemapmaster.model.*;
+import com.airsoft.gamemapmaster.model.DTO.InvitationDTO;
 import com.airsoft.gamemapmaster.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +38,9 @@ public class WebSocketController {
 
     @Autowired
     private FieldUserHistoryService fieldUserHistoryService;
+
+    @Autowired
+    private InvitationService invitationService;
 
     @Autowired
     private FieldService fieldService;
@@ -84,26 +85,19 @@ public class WebSocketController {
         Long targetUserId = Long.valueOf(rawMessage.get("targetUserId").toString());
         Long fieldId = Long.valueOf(rawMessage.get("fieldId").toString());
 
-        User targetUser = userService.findById(targetUserId).orElse(null);
-        if (targetUser == null){
-            logger.warn("⚠️ Utilisateur non trouvé pour l'invitation");
+        // Récupérer l’invitation existante (créée via l’API createOrGet)
+        Optional<Invitation> existingInvitation = invitationService.findByFieldIdAndSenderIdAndTargetUserId(fieldId, senderId, targetUserId);
+        if(existingInvitation.isEmpty()){
+            logger.error("⚠️ Invitation introuvable");
             return;
         }
-        User senderUser = userService.findById(senderId).orElse(null);
+        Invitation invitation = existingInvitation.get();
 
-        Field field = fieldService.findById(fieldId).orElse(null);
-
-        // Recréer le message à envoyer au joueur ciblé
-        Map<String, Object> invitationData = new HashMap<>();
-        invitationData.put("fieldId", fieldId);
-        invitationData.put("senderId", senderId);
-        invitationData.put("targetUserId", targetUserId);
-        invitationData.put("fromUsername", senderUser.getUsername());
-        invitationData.put("mapName", field.getName());
+        InvitationDTO invitationDTO = InvitationDTO.fromEntity(invitation);
 
         WebSocketMessage invitationMessage = new WebSocketMessage(
                 "INVITATION_RECEIVED",
-                invitationData,
+                invitationDTO,
                 senderId,
                 System.currentTimeMillis()
         );

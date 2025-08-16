@@ -118,6 +118,7 @@ public class InvitationController {
     public ResponseEntity<List<InvitationDTO>> getReceivedInvitations(
             @AuthenticationPrincipal AuthUser authUser) {
 
+        logger.info("Récupérer les invitations reçues");
         if (authUser == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Non authentifié");
         }
@@ -126,6 +127,7 @@ public class InvitationController {
         try {
             List<InvitationDTO> invitations =
                     invitationService.getReceivedInvitations(currentUserId);
+        logger.info("Récupérer {} invitations reçues", invitations.size());
 
             return ResponseEntity.ok(invitations);
 
@@ -177,18 +179,18 @@ public class InvitationController {
      * Annuler une invitation
      */
     @DeleteMapping("/{invitationId}")
-    public ResponseEntity<InvitationDTO> cancelInvitation(
+    public ResponseEntity<Void> cancelInvitation(
             @PathVariable Long invitationId,
             @AuthenticationPrincipal AuthUser authUser) {
-
+        logger.info("Annuler l'invitation {}", invitationId);
         if (authUser == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Non authentifié");
         }
         Long currentUserId = authUser.getId();
 
         try {
-            InvitationDTO invitation = invitationService.cancelInvitation(invitationId, currentUserId);
-            return ResponseEntity.ok(invitation);
+            invitationService.cancelInvitation(invitationId, currentUserId);
+            return ResponseEntity.ok().build();
 
         } catch (EntityNotFoundException e) {
             // invitation inexistante

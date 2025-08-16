@@ -24,9 +24,10 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
     /**
      * Trouver une invitation existante pour éviter les doublons
      */
-    Optional<Invitation> findByFieldIdAndSenderIdAndTargetUserId(
-            Long fieldId, Long senderId, Long targetUserId
-    );
+    @Query("select i from Invitation i join fetch i.sender s join fetch i.targetUser tu join fetch i.field f where f.id = :fieldId and s.id = :senderId and tu.id = :targetUserId")
+    Optional<Invitation> findByFieldIdAndSenderIdAndTargetUserId(@Param("fieldId") Long fieldId,
+                                    @Param("senderId") Long senderId,
+                                    @Param("targetUserId") Long targetUserId);
 
     /**
      * Récupérer toutes les invitations envoyées par un host pour un terrain

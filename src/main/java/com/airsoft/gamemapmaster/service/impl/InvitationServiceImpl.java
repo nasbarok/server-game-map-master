@@ -227,24 +227,18 @@ public class InvitationServiceImpl implements InvitationService {
     /**
      * Annuler une invitation
      */
-    public InvitationDTO cancelInvitation(Long invitationId, Long senderId) {
-        Invitation invitation = invitationRepository.findById(invitationId)
-                .orElseThrow(() -> new RuntimeException("Invitation non trouvée"));
-
-        // Vérifier que c'est bien l'expéditeur qui annule
+    public void cancelInvitation(Long invitationId, Long senderId) {
+        Optional<Invitation> invitationOptional = invitationRepository.findById(invitationId);
+        if (!invitationOptional.isPresent()) {
+            throw new RuntimeException("Invitation non trouvée");
+        }
+        Invitation invitation = invitationOptional.get();
+        // Seul l’émetteur (ou un rôle admin si tu en as un) peut supprimer
         if (!invitation.getSender().getId().equals(senderId)) {
-            throw new RuntimeException("Vous ne pouvez annuler que vos propres invitations");
+            throw new RuntimeException("Vous ne pouvez pas annuler cette invitation");
         }
 
-        // Vérifier que l'invitation est encore en attente
-        if (invitation.getStatus() != InvitationStatus.PENDING) {
-            throw new RuntimeException("Cette invitation ne peut plus être annulée");
-        }
-
-        invitation.setStatus(InvitationStatus.CANCELED);
-        invitation = invitationRepository.save(invitation);
-
-        return InvitationDTO.fromEntity(invitation);
+        invitationRepository.delete(invitation); // hard delete
     }
 
     /**
@@ -268,5 +262,10 @@ public class InvitationServiceImpl implements InvitationService {
     @Transactional(readOnly = true)
     public long countReceivedPendingInvitations(Long userId) {
         return invitationRepository.countInvitationsByUserAndStatus(userId, InvitationStatus.PENDING);
+    }
+
+    @Override
+    public Optional<Invitation> findByFieldIdAndSenderIdAndTargetUserId(Long fieldId, Long senderId, Long targetUserId) {
+        return invitationRepository.findByFieldIdAndSenderIdAndTargetUserId(fieldId, senderId, targetUserId);
     }
 }

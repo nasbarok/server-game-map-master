@@ -54,7 +54,7 @@ public interface InvitationService {
      * @param userId ID de l'utilisateur qui annule l'invitation (doit être le créateur du scénario)
      * @return true si l'invitation a été annulée, false sinon
      */
-    InvitationDTO cancelInvitation(Long invitationId, Long userId);
+    void cancelInvitation(Long invitationId, Long userId);
     
     /**
      * Récupère une invitation par son ID
@@ -70,4 +70,6 @@ public interface InvitationService {
     int expireInvitationsForClosedField(Long fieldId);
     long countPendingInvitations(Long senderId, Long fieldId);
     long countReceivedPendingInvitations(Long userId);
+
+    Optional<Invitation> findByFieldIdAndSenderIdAndTargetUserId(Long fieldId, Long senderId, Long targetUserId);
 }
