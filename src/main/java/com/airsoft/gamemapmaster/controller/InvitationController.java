@@ -12,12 +12,14 @@ import com.airsoft.gamemapmaster.service.FieldService;
 import com.airsoft.gamemapmaster.service.InvitationService;
 import com.airsoft.gamemapmaster.service.ScenarioService;
 import com.airsoft.gamemapmaster.service.UserService;
+import com.airsoft.gamemapmaster.websocket.WebSocketMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -48,7 +50,8 @@ public class InvitationController {
 
     @Autowired
     private FieldService fieldService;
-
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
     /**
      * Crée une invitation pour un utilisateur à rejoindre un scénario
      */
@@ -68,9 +71,22 @@ public class InvitationController {
         }
 
         try {
-            InvitationDTO invitation = invitationService.createOrGetInvitation(
+            InvitationDTO invitationDTO = invitationService.createOrGetInvitation(
                     request.getFieldId(), currentUserId, request.getTargetUserId());
-            return ResponseEntity.ok(invitation);
+
+            WebSocketMessage invitationMessage = new WebSocketMessage(
+                    "INVITATION_RECEIVED",
+                    invitationDTO,
+                    currentUserId,
+                    System.currentTimeMillis()
+            );
+
+            logger.info("📩 Envoi d'une invitation de {} à {}", currentUserId, request.getTargetUserId());
+
+            // Envoi vers le canal du joueur cible
+            messagingTemplate.convertAndSend("/topic/user/" + request.getTargetUserId(), invitationMessage);
+
+            return ResponseEntity.ok(invitationDTO);
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (DataIntegrityViolationException e) {
