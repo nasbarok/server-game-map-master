@@ -32,9 +32,7 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
     /**
      * Récupérer toutes les invitations envoyées par un host pour un terrain
      */
-    @Query("SELECT i FROM Invitation i " +
-            "WHERE i.sender.id = :senderId AND i.field.id = :fieldId " +
-            "ORDER BY i.createdAt DESC")
+    @Query("SELECT i FROM Invitation i WHERE (i.sender.id = :senderId AND i.field.id = :fieldId) OR (i.targetUser.id = :senderId) ORDER BY i.createdAt DESC")
     List<Invitation> findSentInvitationsByHostAndField(
             @Param("senderId") Long senderId,
             @Param("fieldId") Long fieldId
