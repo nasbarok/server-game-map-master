@@ -1,5 +1,6 @@
 package com.airsoft.gamemapmaster.service.impl;
 
+import com.airsoft.gamemapmaster.model.DTO.FieldDTO;
 import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.FieldUserHistory;
 import com.airsoft.gamemapmaster.model.User;
@@ -100,5 +101,10 @@ public class FieldUserHistoryServiceImpl implements FieldUserHistoryService {
     @Override
     public List<FieldUserHistory> getHistoryForField(Long fieldId) {
         return fieldUserHistoryRepository.findByFieldId(fieldId);
+    }
+
+    public List<Field> getLastActivesFieldsForUser(Long userId) {
+        // Rechercher le dernier terrain actif auquel l'utilisateur a été invité
+        return fieldUserHistoryRepository.findActiveFieldsByUserId(userId);
     }
 }

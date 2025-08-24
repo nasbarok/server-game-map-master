@@ -1,5 +1,6 @@
 package com.airsoft.gamemapmaster.repository;
 
+import com.airsoft.gamemapmaster.model.DTO.FieldDTO;
 import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.FieldUserHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -33,4 +34,9 @@ public interface FieldUserHistoryRepository extends JpaRepository<FieldUserHisto
             @Param("userId") Long userId,
             @Param("fieldId") Long fieldId
     );
+    @Query("SELECT f FROM Field f " +
+            "INNER JOIN FieldUserHistory fuh ON f.id = fuh.field.id " +
+            "WHERE fuh.user.id = :userId AND f.active = true " +
+            "ORDER BY fuh.joinedAt DESC")
+    List<Field> findActiveFieldsByUserId(@Param("userId") Long userId);
 }

@@ -1,5 +1,6 @@
 package com.airsoft.gamemapmaster.controller;
 
+import com.airsoft.gamemapmaster.model.DTO.FieldDTO;
 import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.FieldUserHistory;
 import com.airsoft.gamemapmaster.model.User;
@@ -12,6 +13,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -92,6 +94,35 @@ public class FieldUserHistoryController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Accès interdit ou entrée non trouvée");
         }
     }
+
+    // Ajout de l'endpoint pour obtenir le dernier terrain actif
+    @GetMapping("/last-active")
+    public ResponseEntity<?> getLastActiveFieldForUser(Authentication authentication) {
+        String username = authentication.getName();
+        Optional<User> userOpt = userService.findByUsername(username);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
+        }
+
+        User user = userOpt.get();
+
+        // Récupérer la liste des terrains actifs pour l'utilisateur
+        List<Field> activeFields = fieldUserHistoryService.getLastActivesFieldsForUser(user.getId());
+
+        // Liste pour stocker les DTOs convertis
+        List<FieldDTO> activeFieldsDTO = new ArrayList<>();
+        // Conversion manuelle des entités Field en FieldDTO
+        for (Field field : activeFields) {
+            FieldDTO fieldDTO = FieldDTO.fromEntity(field);
+            activeFieldsDTO.add(fieldDTO);
+        }
+
+        // Retourner la réponse avec la liste de FieldDTO
+        return ResponseEntity.ok(activeFieldsDTO);
+    }
+
+
 
 }
 

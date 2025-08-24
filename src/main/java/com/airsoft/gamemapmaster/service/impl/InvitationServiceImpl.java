@@ -184,10 +184,14 @@ public class InvitationServiceImpl implements InvitationService {
     /**
      * Récupérer les invitations reçues par un utilisateur
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public List<InvitationDTO> getReceivedInvitations(Long userId) {
+
+        // 🧹 Supprime les invitations devenues caduques (terrain fermé)
+        invitationRepository.deletePendingInvitationsOfClosedFields(userId);
+
         List<Invitation> invitations = invitationRepository
-                .findPendingInvitationsByUser(userId);
+                .findPendingInvitationsByUserOnOpenFields(userId);
 
         return invitations.stream()
                 .map(InvitationDTO::fromEntity)
@@ -267,5 +271,10 @@ public class InvitationServiceImpl implements InvitationService {
     @Override
     public Optional<Invitation> findByFieldIdAndSenderIdAndTargetUserId(Long fieldId, Long senderId, Long targetUserId) {
         return invitationRepository.findByFieldIdAndSenderIdAndTargetUserId(fieldId, senderId, targetUserId);
+    }
+
+    @Override
+    public void deletePendingInvitationsOfClosedFields(Long fieldId) {
+        invitationRepository.deletePendingInvitationsOfClosedFields(fieldId);
     }
 }

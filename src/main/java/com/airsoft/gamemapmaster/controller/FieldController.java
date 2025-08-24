@@ -48,6 +48,9 @@ public class FieldController {
     private FieldUserHistoryService fieldUserHistoryService;
 
     @Autowired
+    private InvitationService invitationService;
+
+    @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
     @GetMapping
@@ -269,6 +272,8 @@ public class FieldController {
         field.setActive(false);
 
         Field updated = fieldService.save(field);
+
+        invitationService.deletePendingInvitationsOfClosedFields(fieldId);
 
         return ResponseEntity.ok(updated);
     }

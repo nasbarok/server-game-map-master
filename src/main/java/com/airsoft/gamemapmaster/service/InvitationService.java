@@ -72,4 +72,6 @@ public interface InvitationService {
     long countReceivedPendingInvitations(Long userId);
 
     Optional<Invitation> findByFieldIdAndSenderIdAndTargetUserId(Long fieldId, Long senderId, Long targetUserId);
+
+    void deletePendingInvitationsOfClosedFields(Long fieldId);
 }

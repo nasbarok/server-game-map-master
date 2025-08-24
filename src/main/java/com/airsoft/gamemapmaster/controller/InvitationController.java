@@ -41,10 +41,10 @@ public class InvitationController {
 
     @Autowired
     private InvitationService invitationService;
-    
+
     @Autowired
     private UserService userService;
-    
+
     @Autowired
     private ScenarioService scenarioService;
 
@@ -52,6 +52,7 @@ public class InvitationController {
     private FieldService fieldService;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+
     /**
      * Crée une invitation pour un utilisateur à rejoindre un scénario
      */
@@ -143,7 +144,7 @@ public class InvitationController {
         try {
             List<InvitationDTO> invitations =
                     invitationService.getReceivedInvitations(currentUserId);
-        logger.info("Récupérer {} invitations reçues", invitations.size());
+            logger.info("Récupérer {} invitations reçues", invitations.size());
 
             return ResponseEntity.ok(invitations);
 
@@ -252,6 +253,7 @@ public class InvitationController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Impossible de compter les invitations", e);
         }
     }
+
     /**
      * Compter les invitations reçues en attente (pour les badges)
      */
@@ -282,16 +284,16 @@ public class InvitationController {
     public ResponseEntity<?> getMyInvitations(Authentication authentication) {
         String username = authentication.getName();
         Optional<User> user = userService.findByUsername(username);
-        
+
         if (user.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
         }
-        
+
         List<Invitation> invitations = invitationService.getInvitationsForUser(user.get().getId());
-        
+
         return ResponseEntity.ok(invitations);
     }
-    
+
     /**
      * Récupère toutes les invitations en attente pour l'utilisateur connecté
      */
@@ -299,16 +301,16 @@ public class InvitationController {
     public ResponseEntity<?> getMyPendingInvitations(Authentication authentication) {
         String username = authentication.getName();
         Optional<User> user = userService.findByUsername(username);
-        
+
         if (user.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
         }
-        
+
         List<Invitation> invitations = invitationService.getPendingInvitationsForUser(user.get().getId());
-        
+
         return ResponseEntity.ok(invitations);
     }
-    
+
     /**
      * Accepte une invitation
      */
