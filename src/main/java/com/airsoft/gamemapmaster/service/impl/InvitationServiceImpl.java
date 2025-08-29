@@ -233,7 +233,7 @@ public class InvitationServiceImpl implements InvitationService {
      */
     public void cancelInvitation(Long invitationId, Long senderId) {
         Optional<Invitation> invitationOptional = invitationRepository.findById(invitationId);
-        if (!invitationOptional.isPresent()) {
+        if (invitationOptional.isEmpty()) {
             throw new RuntimeException("Invitation non trouvée");
         }
         Invitation invitation = invitationOptional.get();

@@ -1,9 +1,11 @@
 package com.airsoft.gamemapmaster.controller;
 
+import com.airsoft.gamemapmaster.model.DTO.FieldDTO;
 import com.airsoft.gamemapmaster.model.DTO.GameSessionDTO;
 import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.GameSession;
 import com.airsoft.gamemapmaster.model.User;
+import com.airsoft.gamemapmaster.repository.FieldRepository;
 import com.airsoft.gamemapmaster.repository.GameSessionRepository;
 import com.airsoft.gamemapmaster.service.GameSessionService;
 import com.airsoft.gamemapmaster.service.HistoryService;
@@ -12,15 +14,19 @@ import com.airsoft.gamemapmaster.service.impl.GameSessionServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.*;
 
 /**
  * Contrôleur pour gérer les endpoints liés à l'historique des parties
@@ -39,23 +45,72 @@ public class HistoryController {
     @Autowired
     private GameSessionRepository gameSessionRepository;
 
+    @Autowired
+    private FieldRepository fieldRepository;
+
     /**
      * Récupère tous les terrains pour l'utilisateur authentifié
      */
     @GetMapping("/fields")
-    public ResponseEntity<?> getFields(Authentication authentication) {
-        log.info("Récupération des terrains pour l'utilisateur authentifié");
-        String username = authentication.getName();
-        Optional<User> userOpt = userService.findByUsername(username);
+    public ResponseEntity<?> getFields(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size,
+            Authentication authentication
+    ) {
+        try {
+            // --- Authentification ---
+            final String username = authentication.getName();
+            var userOpt = userService.findByUsername(username);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
+            }
+            final Long ownerId = userOpt.get().getId();
 
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
+            // --- Pagination & tri (openedAt desc, puis id desc ; nullsLast si supporté) ---
+            int safeSize = Math.min(Math.max(size, 1), 100);
+            Pageable pageable = PageRequest.of(
+                    page,
+                    safeSize,
+                    Sort.by(
+                            Sort.Order.desc("openedAt").nullsLast(), // Spring Data 3.x
+                            Sort.Order.desc("id")
+                    )
+            );
+
+            // --- Requête paginée en base ---
+            // Option A (recommandée) : laisse le tri au Pageable
+            Page<Field> fieldsPage = fieldRepository.findByOwnerIdOrderByOpenedAtDesc(ownerId, pageable);
+            Page<FieldDTO> dtoPage = fieldsPage.map(FieldDTO::fromEntity);
+            // Option B (si tu veux garder ta méthode spécifique) :
+            // Page<Field> fieldsPage = fieldRepository.findByOwnerIdOrderByOpenedAtDesc(ownerId, pageable);
+
+            // --- (Facultatif) mapping DTO pour ne pas exposer l’entité JPA ---
+            // Page<FieldDTO> dtoPage = fieldsPage.map(FieldDTO::fromEntity);
+
+            // --- Réponse standardisée ---
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", dtoPage.getContent());
+            response.put("totalElements", fieldsPage.getTotalElements());
+            response.put("totalPages", fieldsPage.getTotalPages());
+            response.put("number", fieldsPage.getNumber());
+            response.put("size", fieldsPage.getSize());
+            response.put("first", fieldsPage.isFirst());
+            response.put("last", fieldsPage.isLast());
+            response.put("numberOfElements", fieldsPage.getNumberOfElements());
+
+            log.info("Terrains renvoyés (repo) pour ownerId {} : {} éléments (page {}/{})",
+                    ownerId, fieldsPage.getNumberOfElements(), fieldsPage.getNumber(), fieldsPage.getTotalPages());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Erreur lors du chargement des terrains : {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors du chargement des terrains: " + e.getMessage());
         }
-
-        List<Field> fields = historyService.getFieldsByOwnerId(userOpt.get().getId());
-        log.info("Nombre de terrains trouvés : {}", fields.size());
-        return ResponseEntity.ok(fields);
     }
+
+
 
     /**
      * Récupère un terrain par son ID
@@ -84,54 +139,139 @@ public class HistoryController {
 
     /**
      * Récupère toutes les sessions de jeu pour un terrain donné
+     * Endpoint paginé pour sessions par terrain
      */
     @GetMapping("/fields/{fieldId}/sessions")
-    public ResponseEntity<List<GameSessionDTO>> getGameSessionsByFieldId(@PathVariable Long fieldId, Authentication authentication) {
-        log.info("Récupération des sessions de jeu pour le terrain avec ID : {}", fieldId);
-        String username = authentication.getName();
-        Optional<User> userOpt = userService.findByUsername(username);
+    public ResponseEntity<?> getFieldSessions(
+            @PathVariable Long fieldId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
+            Authentication authentication
+    ) {
+        try {
+            // --- Authentification & autorisation ---
+            final String username = authentication.getName();
+            var userOpt = userService.findByUsername(username);
+            if (userOpt.isEmpty()) {
+                log.warn("Utilisateur non trouvé pour le nom d'utilisateur : {}", username);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            var fieldOpt = historyService.getFieldById(fieldId);
+            if (fieldOpt.isEmpty()) {
+                log.warn("Terrain non trouvé pour l'ID : {}", fieldId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+            Field field = fieldOpt.get();
 
-        if (userOpt.isEmpty()) {
-            log.warn("Utilisateur non trouvé pour le nom d'utilisateur : {}", username);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            // Règle d’accès à adapter (ex: propriétaire ou rôle HOST)
+            if (!field.getOwner().getId().equals(userOpt.get().getId())) {
+                log.warn("Accès refusé: user {} tente d'accéder au terrain {}", username, fieldId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
+            // --- Pagination & tri ---
+            int safeSize = Math.min(Math.max(size, 1), 100); // borne 1..100
+            Pageable pageable = PageRequest.of(page, safeSize, Sort.by("startTime").descending());
+
+            // --- Validation des bornes temporelles ---
+            if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+                return ResponseEntity.badRequest().body("startDate doit être ≤ endDate");
+            }
+
+            // --- Requête paginée avec filtres OffsetDateTime (null-safe) ---
+            Page<GameSession> sessionsPage = gameSessionRepository
+                    .findByFieldIdWithDateFilter(fieldId, startDate, endDate, pageable);
+
+            // --- Mapping DTO ---
+            Page<GameSessionDTO> dtoPage = sessionsPage.map(GameSessionDTO::fromEntity);
+
+            // --- Réponse standardisée (métadonnées de pagination) ---
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", dtoPage.getContent());
+            response.put("totalElements", dtoPage.getTotalElements());
+            response.put("totalPages", dtoPage.getTotalPages());
+            response.put("number", dtoPage.getNumber());
+            response.put("size", dtoPage.getSize());
+            response.put("first", dtoPage.isFirst());
+            response.put("last", dtoPage.isLast());
+            response.put("numberOfElements", dtoPage.getNumberOfElements());
+
+            log.info("Sessions renvoyées pour fieldId {} : {} éléments (page {}/{})",
+                    fieldId, dtoPage.getNumberOfElements(), dtoPage.getNumber(), dtoPage.getTotalPages());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Erreur lors du chargement des sessions pour fieldId {} : {}", fieldId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors du chargement des sessions: " + e.getMessage());
         }
-
-        Optional<Field> fieldOpt = historyService.getFieldById(fieldId);
-        if (fieldOpt.isEmpty()) {
-            log.warn("Terrain non trouvé pour l'ID : {}", fieldId);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-
-        Field field = fieldOpt.get();
-/*        if (!field.getOwner().getId().equals(userOpt.get().getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }*/
-
-        List<GameSession> gameSessions = historyService.getGameSessionsByFieldId(fieldId);
-        List<GameSessionDTO> gameSessionDTOs = new ArrayList<>();
-        for (GameSession gameSession : gameSessions) {
-            GameSessionDTO gameSessionDTO = GameSessionDTO.fromEntity(gameSession);
-            gameSessionDTOs.add(gameSessionDTO);
-        }
-        log.info("Nombre de sessions de jeu trouvées : {}", gameSessions.size());
-        return ResponseEntity.ok(gameSessionDTOs);
     }
+
 
     /**
      * Récupère toutes les sessions de jeu auxquelles l'utilisateur authentifié a participé
      */
     @GetMapping("/sessions")
-    public ResponseEntity<?> getGameSessions(Authentication authentication) {
-        String username = authentication.getName();
-        Optional<User> userOpt = userService.findByUsername(username);
+    public ResponseEntity<?> getAllSessions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
+            Authentication authentication
+    ) {
+        try {
+            // --- Authentification ---
+            final String username = authentication.getName();
+            var userOpt = userService.findByUsername(username);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
+            }
+            final Long userId = userOpt.get().getId();
 
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé");
+            // --- Pagination & tri ---
+            int safeSize = Math.min(Math.max(size, 1), 100); // borne 1..100
+            Pageable pageable = PageRequest.of(page, safeSize, Sort.by("startTime").descending());
+
+            // --- Validation des bornes temporelles ---
+            if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+                return ResponseEntity.badRequest().body("startDate doit être ≤ endDate");
+            }
+
+            // --- Requête paginée (null-safe sur les dates) ---
+            Page<GameSession> sessionsPage = gameSessionRepository
+                    .findByUserIdWithDateFilter(userId, startDate, endDate, pageable);
+
+            // --- Mapping DTO ---
+            Page<GameSessionDTO> dtoPage = sessionsPage.map(GameSessionDTO::fromEntity);
+
+            // --- Réponse standardisée (type Page) ---
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", dtoPage.getContent());
+            response.put("totalElements", dtoPage.getTotalElements());
+            response.put("totalPages", dtoPage.getTotalPages());
+            response.put("number", dtoPage.getNumber());
+            response.put("size", dtoPage.getSize());
+            response.put("first", dtoPage.isFirst());
+            response.put("last", dtoPage.isLast());
+            response.put("numberOfElements", dtoPage.getNumberOfElements());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Erreur lors du chargement des sessions pour l'utilisateur courant : {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors du chargement des sessions: " + e.getMessage());
         }
-
-        List<GameSession> gameSessions = historyService.getGameSessionsByParticipantId(userOpt.get().getId());
-        return ResponseEntity.ok(gameSessions);
     }
+
+
 
     /**
      * Récupère une session de jeu par son ID
@@ -211,6 +351,7 @@ public class HistoryController {
         Map<String, Object> statistics = historyService.getGameSessionStatistics(id);
         return ResponseEntity.ok(statistics);
     }
+
     /**
      * Supprime un terrain et tout son historique (sessions liées)
      */

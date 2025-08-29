@@ -1,6 +1,8 @@
 package com.airsoft.gamemapmaster.repository;
 
 import com.airsoft.gamemapmaster.model.Field;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,4 +19,6 @@ public interface FieldRepository extends JpaRepository<Field, Long> {
 
     @Query("SELECT f FROM Field f WHERE f.owner.id = :ownerId AND f.active = true AND f.closedAt IS NULL ORDER BY f.id DESC")
     List<Field> findLastOpenedFieldByOwner(@Param("ownerId") Long ownerId);
+
+    Page<Field> findByOwnerIdOrderByOpenedAtDesc(Long ownerId, Pageable pageable);
 }
