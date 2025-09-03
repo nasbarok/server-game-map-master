@@ -188,7 +188,7 @@ public class InvitationServiceImpl implements InvitationService {
     public List<InvitationDTO> getReceivedInvitations(Long userId) {
 
         // 🧹 Supprime les invitations devenues caduques (terrain fermé)
-        invitationRepository.deletePendingInvitationsOfClosedFields(userId);
+        invitationRepository.deletePendingInvitationsOfClosedFieldsByUserId(userId);
 
         List<Invitation> invitations = invitationRepository
                 .findPendingInvitationsByUserOnOpenFields(userId);
@@ -274,7 +274,8 @@ public class InvitationServiceImpl implements InvitationService {
     }
 
     @Override
-    public void deletePendingInvitationsOfClosedFields(Long fieldId) {
-        invitationRepository.deletePendingInvitationsOfClosedFields(fieldId);
+    @Transactional
+    public void deleteInvitationsOfClosedFields(Long fieldId) {
+        invitationRepository.deletePendingInvitationsOfClosedFieldsByFieldId(fieldId);
     }
 }

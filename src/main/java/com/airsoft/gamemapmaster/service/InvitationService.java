@@ -2,8 +2,6 @@ package com.airsoft.gamemapmaster.service;
 
 import com.airsoft.gamemapmaster.model.DTO.InvitationDTO;
 import com.airsoft.gamemapmaster.model.Invitation;
-import com.airsoft.gamemapmaster.model.Scenario;
-import com.airsoft.gamemapmaster.model.Team;
 import com.airsoft.gamemapmaster.model.User;
 
 import java.util.List;
@@ -73,5 +71,5 @@ public interface InvitationService {
 
     Optional<Invitation> findByFieldIdAndSenderIdAndTargetUserId(Long fieldId, Long senderId, Long targetUserId);
 
-    void deletePendingInvitationsOfClosedFields(Long fieldId);
+    void deleteInvitationsOfClosedFields(Long fieldId);
 }

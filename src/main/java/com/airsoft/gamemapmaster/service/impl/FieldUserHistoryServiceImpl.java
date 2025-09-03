@@ -11,6 +11,8 @@ import com.airsoft.gamemapmaster.service.FieldUserHistoryService;
 import com.airsoft.gamemapmaster.service.InvitationService;
 import com.airsoft.gamemapmaster.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -73,9 +75,9 @@ public class FieldUserHistoryServiceImpl implements FieldUserHistoryService {
     }
 
     @Override
-    public List<Field> getFieldsVisitedByUser(Long userId) {
+    public Page<Field> getFieldsVisitedByUser(Long userId, Pageable pageable) {
         // Récupérer les IDs des terrains visités par l'utilisateur
-        List<Field> fields = fieldUserHistoryRepository.findFieldsVisitedByUser(userId);
+        Page<Field> fields = fieldUserHistoryRepository.findFieldsVisitedByUserId(userId, pageable);
         return fields;
     }
 

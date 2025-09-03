@@ -168,10 +168,12 @@ public class HistoryController {
             Field field = fieldOpt.get();
 
             // Règle d’accès à adapter (ex: propriétaire ou rôle HOST)
+/*
             if (!field.getOwner().getId().equals(userOpt.get().getId())) {
                 log.warn("Accès refusé: user {} tente d'accéder au terrain {}", username, fieldId);
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
+*/
 
             // --- Pagination & tri ---
             int safeSize = Math.min(Math.max(size, 1), 100); // borne 1..100

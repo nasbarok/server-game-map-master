@@ -9,8 +9,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import javax.transaction.Transactional;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -98,6 +96,10 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
             "WHERE i.target_user_id = :userId " +
             "AND i.status = 'PENDING' " +
             "AND field_id IN (SELECT id FROM fields WHERE closed_at IS NOT NULL)", nativeQuery = true)
-    int deletePendingInvitationsOfClosedFields(@Param("userId") Long userId);
+    int deletePendingInvitationsOfClosedFieldsByUserId(@Param("userId") Long userId);
 
+    @Modifying(clearAutomatically = true) // (retire flushAutomatically)
+    @Query(value = "DELETE FROM invitations " +
+            "WHERE field_id = :fieldId", nativeQuery = true)
+    void deletePendingInvitationsOfClosedFieldsByFieldId(Long fieldId);
 }

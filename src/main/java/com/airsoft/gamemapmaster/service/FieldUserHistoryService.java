@@ -4,6 +4,8 @@ import com.airsoft.gamemapmaster.model.DTO.FieldDTO;
 import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.FieldUserHistory;
 import com.airsoft.gamemapmaster.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,7 +22,7 @@ public interface FieldUserHistoryService {
 
     List<FieldUserHistory> getHistoryForField(Long fieldId);
 
-    List<Field> getFieldsVisitedByUser(Long id);
+    Page<Field> getFieldsVisitedByUser(Long id, Pageable pageable);
 
     boolean deleteHistoryEntryIfOwnedByUser(Long historyId, User user);
 

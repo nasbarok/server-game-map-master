@@ -7,16 +7,17 @@ import com.airsoft.gamemapmaster.model.User;
 import com.airsoft.gamemapmaster.service.FieldUserHistoryService;
 import com.airsoft.gamemapmaster.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/fields-history")
@@ -62,7 +63,11 @@ public class FieldUserHistoryController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<?> getFieldHistory(Authentication authentication) {
+    public ResponseEntity<?> getFieldHistory(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size,
+            Authentication authentication) {
+
         String username = authentication.getName();
         Optional<User> userOpt = userService.findByUsername(username);
 
@@ -72,11 +77,30 @@ public class FieldUserHistoryController {
 
         User user = userOpt.get();
 
-        // Récupérer l'historique des terrains visités par l'utilisateur
-        List<Field> fields = fieldUserHistoryService.getFieldsVisitedByUser(user.getId());
+        // Pagination et tri par openedAt (plus récent en premier)
+        int safeSize = Math.min(Math.max(size, 1), 100); // limiter la taille
+        Pageable pageable = PageRequest.of(page, safeSize, Sort.by(Sort.Order.desc("openedAt").nullsLast(), Sort.Order.desc("id")));
 
-        return ResponseEntity.ok(fields);
+        // Utiliser un repository qui retourne un Page (paginé)
+        Page<Field> fieldsPage = fieldUserHistoryService.getFieldsVisitedByUser(user.getId(), pageable);
+
+        // Mapping vers FieldDTO pour ne pas exposer l’entité directement
+        Page<FieldDTO> dtoPage = fieldsPage.map(FieldDTO::fromEntity);
+
+        // Création de la réponse paginée standard
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", dtoPage.getContent());
+        response.put("totalElements", dtoPage.getTotalElements());
+        response.put("totalPages", dtoPage.getTotalPages());
+        response.put("number", dtoPage.getNumber());
+        response.put("size", dtoPage.getSize());
+        response.put("first", dtoPage.isFirst());
+        response.put("last", dtoPage.isLast());
+        response.put("numberOfElements", dtoPage.getNumberOfElements());
+
+        return ResponseEntity.ok(response);
     }
+
 
     @DeleteMapping("/history/{historyId}")
     public ResponseEntity<?> deleteFieldHistoryEntry(@PathVariable Long historyId, Authentication authentication) {

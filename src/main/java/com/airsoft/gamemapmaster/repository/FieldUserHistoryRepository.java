@@ -3,6 +3,8 @@ package com.airsoft.gamemapmaster.repository;
 import com.airsoft.gamemapmaster.model.DTO.FieldDTO;
 import com.airsoft.gamemapmaster.model.Field;
 import com.airsoft.gamemapmaster.model.FieldUserHistory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -39,4 +41,7 @@ public interface FieldUserHistoryRepository extends JpaRepository<FieldUserHisto
             "WHERE fuh.user.id = :userId AND f.active = true " +
             "ORDER BY fuh.joinedAt DESC")
     List<Field> findActiveFieldsByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT f FROM Field f JOIN FieldUserHistory h ON f.id = h.field.id WHERE h.user.id = :userId")
+    Page<Field> findFieldsVisitedByUserId(@Param("userId") Long userId, Pageable pageable);
 }

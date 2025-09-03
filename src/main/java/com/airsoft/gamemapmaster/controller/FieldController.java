@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -219,20 +218,26 @@ public class FieldController {
                                         Principal principal) {
         String username = principal.getName();
         Optional<User> userOpt = userService.findByUsername(username);
-        if (userOpt.isEmpty()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
         Optional<Field> fieldOpt = fieldService.findById(fieldId);
-        if (fieldOpt.isEmpty()) return ResponseEntity.notFound().build();
+        if (fieldOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
 
         Field field = fieldOpt.get();
         if (!field.getOwner().getId().equals(userOpt.get().getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Vous n'êtes pas propriétaire de ce terrain.");
         }
 
+        // Si déjà fermé / inactif, on retourne l'état courant (pas de réouverture/fermeture inutile)
         if (!field.isActive()) {
             return ResponseEntity.ok(field);
         }
 
+        // Parse du closedAt envoyé par le client (Instant ISO-8601)
         String closedAtStr = payload.get("closedAt");
         OffsetDateTime closedAt;
         try {
@@ -245,35 +250,40 @@ public class FieldController {
             return ResponseEntity.badRequest().body("Format de date invalide pour 'closedAt'");
         }
 
-        // Envoyer une notification WebSocket AVANT de déconnecter les joueurs
+        // === 1) Écritures DB AVANT WS ===
+
+        // 1.1 Déconnecter tous les joueurs de ce terrain
+        connectedPlayerService.disconnectAllPlayersFromField(fieldId);
+
+        // 1.2 Détacher les GameMap du Field
+        List<GameMap> gameMaps = gameMapService.findByFieldId(fieldId);
+        for (GameMap map : gameMaps) {
+            map.setField(null);
+            gameMapService.save(map);
+        }
+
+        // 1.3 Marquer le Field comme fermé/inactif
+        field.setClosedAt(closedAt);
+        field.setActive(false);
+        Field updated = fieldService.save(field);
+
+        // 1.4 Expirer/Supprimer les invitations PENDING liées au Field
+        // (implémenté côté service, annoté @Transactional)
+        invitationService.deleteInvitationsOfClosedFields(fieldId);
+
+        // === 2) Notification WebSocket APRÈS succès DB ===
         WebSocketMessage closeMessage = new WebSocketMessage(
                 "FIELD_CLOSED",
                 Map.of(
                         "fieldId", fieldId,
                         "ownerId", userOpt.get().getId(),
                         "ownerUsername", username,
-                        "closedAt", closedAt
+                        "closedAt", closedAt.toString() // ISO-8601
                 ),
                 userOpt.get().getId(),
                 System.currentTimeMillis()
         );
-
         messagingTemplate.convertAndSend("/topic/field/" + fieldId, closeMessage);
-
-        connectedPlayerService.disconnectAllPlayersFromField(fieldId);
-
-        List<GameMap> gameMap = gameMapService.findByFieldId(fieldId);
-        for (GameMap map : gameMap) {
-            map.setField(null);
-            gameMapService.save(map);
-        }
-
-        field.setClosedAt(closedAt);
-        field.setActive(false);
-
-        Field updated = fieldService.save(field);
-
-        invitationService.deletePendingInvitationsOfClosedFields(fieldId);
 
         return ResponseEntity.ok(updated);
     }
