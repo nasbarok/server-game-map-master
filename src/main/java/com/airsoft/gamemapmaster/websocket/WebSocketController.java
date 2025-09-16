@@ -151,6 +151,7 @@ public class WebSocketController {
         responsePayload.put("senderId", fromUserId);
         responsePayload.put("targetUserId", toUserId);
         responsePayload.put("fromUsername", fromUsername);
+        responsePayload.put("fromUserId", fromUserId);
         responsePayload.put("mapName", mapName);
         responsePayload.put("accepted", accepted);
 
