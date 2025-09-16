@@ -1,0 +1,81 @@
+databaseChangeLog:
+  - changeSet:
+      id: 13-create-player-favorites-table
+      author: system
+      comment: "Création de la table player_favorites pour gérer les joueurs favoris des hosts"
+      changes:
+        - createTable:
+            tableName: player_favorites
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: host_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: favorite_player_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 13-add-foreign-keys-player-favorites
+      author: system
+      comment: "Ajout des clés étrangères pour la table player_favorites"
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: player_favorites
+            baseColumnNames: host_id
+            constraintName: fk_player_favorites_host
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: player_favorites
+            baseColumnNames: favorite_player_id
+            constraintName: fk_player_favorites_player
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+  - changeSet:
+      id: 13-add-unique-constraint-player-favorites
+      author: system
+      comment: "Ajout de la contrainte unique pour éviter les doublons host/joueur"
+      changes:
+        - addUniqueConstraint:
+            tableName: player_favorites
+            columnNames: host_id, favorite_player_id
+            constraintName: uk_player_favorites_host_player
+
+  - changeSet:
+      id: 13-add-indexes-player-favorites
+      author: system
+      comment: "Ajout d'index pour optimiser les performances"
+      changes:
+        - createIndex:
+            tableName: player_favorites
+            indexName: idx_player_favorites_host_id
+            columns:
+              - column:
+                  name: host_id
+        - createIndex:
+            tableName: player_favorites
+            indexName: idx_player_favorites_created_at
+            columns:
+              - column:
+                  name: created_at
+                  descending: true
