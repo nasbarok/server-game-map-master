@@ -63,8 +63,9 @@ public class UserController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<User>> searchUsers(@RequestParam("query") String query) {
-        List<User> users = userService.searchUsersByUsernameOrEmail(query);
+    public ResponseEntity<List<User>> searchUsers(@RequestParam("query") String query,Authentication authentication) {
+        String currentUsername = authentication.getName();
+        List<User> users = userService.searchUsersByUsernameOrEmailExcludingCurrent(query, currentUsername);
         return ResponseEntity.ok(users);
     }
 

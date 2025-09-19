@@ -52,4 +52,10 @@ public class UserServiceImpl implements UserService {
     public List<User> searchUsersByUsernameOrEmail(String query) {
         return userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(query, query);
     }
+
+    @Override
+    public List<User> searchUsersByUsernameOrEmailExcludingCurrent(String query, String currentUsername) {
+        return userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseAndUsernameNot(
+                query, query, currentUsername);
+    }
 }

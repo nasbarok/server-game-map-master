@@ -13,4 +13,6 @@ public interface UserService {
     void deleteById(Long id);
 
     List<User> searchUsersByUsernameOrEmail(String query);
+
+    List<User> searchUsersByUsernameOrEmailExcludingCurrent(String query, String currentUsername);
 }
