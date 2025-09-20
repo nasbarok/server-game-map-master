@@ -1,0 +1,458 @@
+databaseChangeLog:
+  - changeSet:
+      id: 14-create-target-elimination-scenarios-table
+      author: system
+      comment: "Création de la table target_elimination_scenarios pour le scénario d'élimination ciblée"
+      changes:
+        - createTable:
+            tableName: target_elimination_scenarios
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: scenario_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: size
+                  type: VARCHAR(20)
+                  defaultValue: 'SMALL'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mode
+                  type: VARCHAR(20)
+                  defaultValue: 'SOLO'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: friendly_fire
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: points_per_elimination
+                  type: INT
+                  defaultValue: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cooldown_minutes
+                  type: INT
+                  defaultValue: 5
+                  constraints:
+                    nullable: false
+              - column:
+                  name: max_targets
+                  type: INT
+                  defaultValue: 50
+                  constraints:
+                    nullable: false
+              - column:
+                  name: announcement_template
+                  type: VARCHAR(500)
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scores_locked
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 14-create-player-targets-table
+      author: system
+      comment: "Création de la table player_targets pour l'affectation des numéros et QR codes aux joueurs"
+      changes:
+        - createTable:
+            tableName: player_targets
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: scenario_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: player_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: team_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: target_number
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: qr_code
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: assigned_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_eliminated_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 14-create-eliminations-table
+      author: system
+      comment: "Création de la table eliminations pour l'historique des éliminations"
+      changes:
+        - createTable:
+            tableName: eliminations
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: scenario_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: killer_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: victim_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: killer_team_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: victim_team_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: game_session_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: points
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: eliminated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: qr_code_scanned
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 14-create-target-elimination-scores-table
+      author: system
+      comment: "Création de la table target_elimination_scores pour les scores et statistiques K/D"
+      changes:
+        - createTable:
+            tableName: target_elimination_scores
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: scenario_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: player_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: team_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: game_session_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: kills
+                  type: INT
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: deaths
+                  type: INT
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: points
+                  type: INT
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_updated
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 14-add-foreign-keys-target-elimination
+      author: system
+      comment: "Ajout des clés étrangères pour les tables d'élimination ciblée"
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: target_elimination_scenarios
+            baseColumnNames: scenario_id
+            constraintName: fk_target_elimination_scenarios_scenario
+            referencedTableName: scenarios
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: player_targets
+            baseColumnNames: scenario_id
+            constraintName: fk_player_targets_scenario
+            referencedTableName: target_elimination_scenarios
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: player_targets
+            baseColumnNames: player_id
+            constraintName: fk_player_targets_player
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: player_targets
+            baseColumnNames: team_id
+            constraintName: fk_player_targets_team
+            referencedTableName: teams
+            referencedColumnNames: id
+            onDelete: SET NULL
+        - addForeignKeyConstraint:
+            baseTableName: eliminations
+            baseColumnNames: scenario_id
+            constraintName: fk_eliminations_scenario
+            referencedTableName: target_elimination_scenarios
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: eliminations
+            baseColumnNames: killer_id
+            constraintName: fk_eliminations_killer
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: eliminations
+            baseColumnNames: victim_id
+            constraintName: fk_eliminations_victim
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: eliminations
+            baseColumnNames: killer_team_id
+            constraintName: fk_eliminations_killer_team
+            referencedTableName: teams
+            referencedColumnNames: id
+            onDelete: SET NULL
+        - addForeignKeyConstraint:
+            baseTableName: eliminations
+            baseColumnNames: victim_team_id
+            constraintName: fk_eliminations_victim_team
+            referencedTableName: teams
+            referencedColumnNames: id
+            onDelete: SET NULL
+        - addForeignKeyConstraint:
+            baseTableName: eliminations
+            baseColumnNames: game_session_id
+            constraintName: fk_eliminations_game_session
+            referencedTableName: game_sessions
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: target_elimination_scores
+            baseColumnNames: scenario_id
+            constraintName: fk_target_elimination_scores_scenario
+            referencedTableName: target_elimination_scenarios
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: target_elimination_scores
+            baseColumnNames: player_id
+            constraintName: fk_target_elimination_scores_player
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: target_elimination_scores
+            baseColumnNames: team_id
+            constraintName: fk_target_elimination_scores_team
+            referencedTableName: teams
+            referencedColumnNames: id
+            onDelete: SET NULL
+        - addForeignKeyConstraint:
+            baseTableName: target_elimination_scores
+            baseColumnNames: game_session_id
+            constraintName: fk_target_elimination_scores_game_session
+            referencedTableName: game_sessions
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+  - changeSet:
+      id: 14-add-unique-constraints-target-elimination
+      author: system
+      comment: "Ajout des contraintes uniques pour éviter les doublons"
+      changes:
+        - addUniqueConstraint:
+            tableName: target_elimination_scenarios
+            columnNames: scenario_id
+            constraintName: uk_target_elimination_scenarios_scenario_id
+        - addUniqueConstraint:
+            tableName: player_targets
+            columnNames: scenario_id, target_number
+            constraintName: uk_player_targets_scenario_number
+        - addUniqueConstraint:
+            tableName: player_targets
+            columnNames: scenario_id, player_id
+            constraintName: uk_player_targets_scenario_player
+        - addUniqueConstraint:
+            tableName: player_targets
+            columnNames: qr_code
+            constraintName: uk_player_targets_qr_code
+        - addUniqueConstraint:
+            tableName: target_elimination_scores
+            columnNames: scenario_id, player_id, game_session_id
+            constraintName: uk_target_elimination_scores_scenario_player_session
+
+  - changeSet:
+      id: 14-add-indexes-target-elimination
+      author: system
+      comment: "Ajout d'index pour optimiser les performances"
+      changes:
+        - createIndex:
+            tableName: target_elimination_scenarios
+            indexName: idx_target_elimination_scenarios_active
+            columns:
+              - column:
+                  name: active
+        - createIndex:
+            tableName: player_targets
+            indexName: idx_player_targets_scenario_id
+            columns:
+              - column:
+                  name: scenario_id
+        - createIndex:
+            tableName: player_targets
+            indexName: idx_player_targets_player_id
+            columns:
+              - column:
+                  name: player_id
+        - createIndex:
+            tableName: player_targets
+            indexName: idx_player_targets_qr_code
+            columns:
+              - column:
+                  name: qr_code
+        - createIndex:
+            tableName: eliminations
+            indexName: idx_eliminations_scenario_id
+            columns:
+              - column:
+                  name: scenario_id
+        - createIndex:
+            tableName: eliminations
+            indexName: idx_eliminations_game_session_id
+            columns:
+              - column:
+                  name: game_session_id
+        - createIndex:
+            tableName: eliminations
+            indexName: idx_eliminations_eliminated_at
+            columns:
+              - column:
+                  name: eliminated_at
+                  descending: true
+        - createIndex:
+            tableName: target_elimination_scores
+            indexName: idx_target_elimination_scores_scenario_session
+            columns:
+              - column:
+                  name: scenario_id
+              - column:
+                  name: game_session_id
+        - createIndex:
+            tableName: target_elimination_scores
+            indexName: idx_target_elimination_scores_points
+            columns:
+              - column:
+                  name: points
+                  descending: true
